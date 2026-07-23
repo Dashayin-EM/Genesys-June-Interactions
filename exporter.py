@@ -11,8 +11,9 @@ Tabs produced:
   5. Queue Performance  – Per-queue breakdown (all queues)
   6. Agent Performance  – Per-agent breakdown (all agents)
   7. Flow Performance   – Per-flow breakdown (all flows)
-  8. Wrap-up Codes      – Wrap-up code frequencies
-  9. Raw Error Records  – Every row with an error code or system-error disconnect
+  8. IVR & Outcomes     – Exits, Segments, and Authentication stats (NEW)
+  9. Wrap-up Codes      – Wrap-up code frequencies
+ 10. Raw Error Records  – Every row with an error code or system-error disconnect
 
 Usage:
     from exporter import export_to_excel
@@ -354,6 +355,31 @@ def _build_flow(ws, df):
     _freeze(ws)
 
 
+def _build_ivr_outcomes(ws, df):
+    ws.title = "IVR & Outcomes"
+    total = len(df)
+    ws.append(["Category", "Metric / Path", "Occurrences", "% of Total"])
+    _apply_header(ws)
+    
+    def append_counts(category_name, col_name, top_n=15):
+        if col_name in df.columns:
+            counts = df[df[col_name] != ''][col_name].value_counts().head(top_n)
+            for val, count in counts.items():
+                if str(val).strip():
+                    ws.append([category_name, str(val), int(count), round((count/total)*100, 2)])
+    
+    append_counts("Flow Exit Reason", cfg.FLOW_EXIT_COL)
+    append_counts("Flow-Out Type", cfg.FLOW_OUT_TYPE_COL)
+    append_counts("IVR Segment Path", cfg.IVR_SEGMENTS_COL)
+    append_counts("Failed Outcomes", cfg.FAILED_OUTCOMES_COL)
+    append_counts("Authenticated Status", cfg.AUTHENTICATED_COL)
+    append_counts("Customer Journey Data", cfg.HAS_CUSTOMER_JOURNEY_DATA_COL)
+    
+    _apply_table(ws, start_row=2)
+    _autofit(ws)
+    _freeze(ws)
+
+
 def _build_wrapup(ws, df):
     ws.title = "Wrap-up Codes"
     total = len(df)
@@ -379,16 +405,25 @@ def _build_wrapup(ws, df):
 def _build_raw_errors(ws, df):
     ws.title = "Raw Error Records"
 
-    mask = (
-        (df[cfg.ERROR_CODE_COL] != '') if cfg.ERROR_CODE_COL in df.columns else pd.Series(False, index=df.index)
-    ) | (df['System Error Disconnect_Clean'] > 0)
+    has_err_code  = (df[cfg.ERROR_CODE_COL] != '') if cfg.ERROR_CODE_COL in df.columns else pd.Series(False, index=df.index)
+    has_sys_disc  = df['System Error Disconnect_Clean'] > 0
+    has_err_cnt   = df['Error Count_Clean'] > 0
+    has_wrap_to   = df[cfg.WRAP_UP_COL].str.contains("ININ-WRAP-UP-TIMEOUT", case=False, na=False) if cfg.WRAP_UP_COL in df.columns else pd.Series(False, index=df.index)
+    has_flow_disc = df['Flow Disconnect_Clean'] > 0
+    
+    has_rona_num  = df['Not Responding_Clean'] > 0
+    has_rona_str  = (df['Not Responding_Clean'] == 0) & (df[cfg.USERS_NOT_RESPONDING_COL] != '') if cfg.USERS_NOT_RESPONDING_COL in df.columns else pd.Series(False, index=df.index)
+    has_rona      = has_rona_num | has_rona_str
+
+    mask = has_err_code | has_sys_disc | has_err_cnt | has_wrap_to | has_rona | has_flow_disc
 
     error_df = df[mask].copy()
 
-    # Select most relevant columns for investigation
     cols = [c for c in [
-        cfg.TIMESTAMP_COL, cfg.MEDIA_TYPE_COL, cfg.DIRECTION_COL,
-        cfg.QUEUE_COL, cfg.AGENT_COL, cfg.FLOW_COL,
+        cfg.TIMESTAMP_COL, 'Interaction ID', cfg.ANI_COL, cfg.DNIS_COL, cfg.REMOTE_COL, 
+        cfg.MEDIA_TYPE_COL, cfg.DIRECTION_COL,
+        cfg.QUEUE_COL, cfg.AGENT_COL, cfg.USERS_NOT_RESPONDING_COL, 
+        cfg.FLOW_COL, cfg.FLOW_EXIT_COL, cfg.IVR_SEGMENTS_COL, cfg.FAILED_OUTCOMES_COL,
         cfg.ERROR_CODE_COL, 'Error Count_Clean',
         'System Error Disconnect_Clean', 'Flow Disconnect_Clean',
         cfg.DISCONNECT_TYPE_COL, cfg.WRAP_UP_COL,
@@ -401,7 +436,6 @@ def _build_raw_errors(ws, df):
     for _, row in error_df[cols].iterrows():
         ws.append([str(v) if isinstance(v, bool) else v for v in row.tolist()])
 
-    # Highlight error code column
     err_col_idx = cols.index(cfg.ERROR_CODE_COL) + 1 if cfg.ERROR_CODE_COL in cols else None
     _apply_table(ws, start_row=2, error_col=err_col_idx)
     _autofit(ws)
@@ -425,11 +459,9 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-    # Create workbook
     from openpyxl import Workbook
     wb = Workbook()
 
-    # Build each sheet (first sheet is the default Sheet)
     ws_summary = wb.active
     _build_summary(ws_summary, df)
 
@@ -439,6 +471,7 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
     _build_queue(wb.create_sheet(), df)
     _build_agent(wb.create_sheet(), df)
     _build_flow(wb.create_sheet(), df)
+    _build_ivr_outcomes(wb.create_sheet(), df) # Added the new tab here
     _build_wrapup(wb.create_sheet(), df)
     _build_raw_errors(wb.create_sheet(), df)
 

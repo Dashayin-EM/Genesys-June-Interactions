@@ -165,8 +165,18 @@ def run_analysis(df):
     if not impacted_interactions.empty:
         # Dynamically define columns to display based on availability
         desired_cols = [
-            'Parsed_Timestamp', 'Interaction ID', cfg.AGENT_COL, cfg.QUEUE_COL, 
-            cfg.ERROR_CODE_COL, cfg.DISCONNECT_TYPE_COL
+            'Parsed_Timestamp', 
+            'Interaction ID',
+            cfg.ANI_COL,
+            cfg.REMOTE_COL,
+            cfg.MEDIA_TYPE_COL,
+            cfg.FLOW_COL,
+            cfg.QUEUE_COL, 
+            cfg.AGENT_COL,
+            cfg.USERS_NOT_RESPONDING_COL,
+            cfg.ERROR_CODE_COL, 
+            cfg.DISCONNECT_TYPE_COL,
+            cfg.FAILED_OUTCOMES_COL
         ]
         available_cols = [col for col in desired_cols if col in impacted_interactions.columns]
         
@@ -550,8 +560,18 @@ def print_executive_report(ctx: dict):
     if not impacted_df.empty:
         # Define preferred columns ensuring they exist in the dataframe
         report_cols = [
-            'Parsed_Timestamp', 'Interaction ID', cfg.AGENT_COL, cfg.QUEUE_COL, 
-            cfg.ERROR_CODE_COL, cfg.DISCONNECT_TYPE_COL
+            'Parsed_Timestamp', 
+            'Interaction ID',
+            cfg.ANI_COL,
+            cfg.REMOTE_COL,
+            cfg.MEDIA_TYPE_COL,
+            cfg.FLOW_COL,
+            cfg.QUEUE_COL, 
+            cfg.AGENT_COL,
+            cfg.USERS_NOT_RESPONDING_COL,
+            cfg.ERROR_CODE_COL, 
+            cfg.DISCONNECT_TYPE_COL,
+            cfg.FAILED_OUTCOMES_COL
         ]
         valid_cols = [col for col in report_cols if col in impacted_df.columns]
         

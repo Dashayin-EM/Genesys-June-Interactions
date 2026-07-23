@@ -111,7 +111,15 @@ def load_data(filepath):
             df[f'{ncol}_Clean'] = 0.0
 
     # Fill NA string fields with empty string for clean searching
-    text_cols = ['Wrap-up', 'Disconnect Type', 'Error Code', 'Users', 'Queue', 'Flow', 'Media Type', 'Direction', 'Users - Not Responding']
+# Fill NA string fields with empty string for clean searching
+    text_cols = [
+        'Wrap-up', 'Disconnect Type', 'Error Code', 'Users', 'Queue', 'Flow', 
+        'Media Type', 'Direction', 'Users - Not Responding',
+        # --- Newly Added Columns Below ---
+        'ANI', 'Remote', 'DNIS', 'First Queue', 
+        'Failed Outcomes', 'Incomplete Outcomes', 
+        'Flow-Out Type', 'IVR Segments'
+    ]
     for tcol in text_cols:
         if tcol in df.columns:
             df[tcol] = df[tcol].fillna('').astype(str).str.strip()
