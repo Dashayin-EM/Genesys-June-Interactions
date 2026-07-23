@@ -20,6 +20,7 @@ Usage:
 """
 
 import os
+import html
 import pandas as pd
 import numpy as np
 import config as cfg
@@ -141,6 +142,7 @@ def _build_summary(ws, df):
     rona_c     = int(has_rona.sum())
     wrapup_base= df[df[cfg.WRAP_UP_COL] != ''].shape[0] if cfg.WRAP_UP_COL in df.columns else 0
     wrapup_pct = (wrapup_tos / wrapup_base * 100) if wrapup_base > 0 else 0
+    avg_time_to_abandon = df.loc[df['Abandoned_Bool'], 'Time to Abandon_Seconds'].mean() if 'Time to Abandon_Seconds' in df.columns else 0
 
     rows = [
         ("Metric", "Value", "Notes"),
@@ -168,7 +170,7 @@ def _build_summary(ws, df):
         ("Abandon Rate (vs all interactions)", f"{total_abandoned/total*100:.2f}%", ""),
         ("Abandon Rate (queue-based)", f"{abnd_rate_q:.2f}%", f"Out of {qe_count:,} queue-entered interactions"),
         ("Abandoned in Queue", int(df['Abandoned_in_Queue_Bool'].sum()), ""),
-        ("Avg Time to Abandon", format_seconds(df['Time to Abandon_Seconds'].mean()) if 'Time to Abandon_Seconds' in df.columns else 'N/A', ""),
+        ("Avg Time to Abandon", format_seconds(avg_time_to_abandon), "Abandoned interactions only"),
         # ── Performance ──
         ("── PERFORMANCE ──", "", ""),
         ("Avg Handle Time AHT (answered only)", format_seconds(aht), "Excludes unanswered (0s) rows"),
@@ -443,3 +445,43 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
     wb.save(output_path)
     print(f"📊 Excel report saved → {output_path}")
     print(f"   Tabs: {', '.join(ws.title for ws in wb.worksheets)}")
+
+
+def append_terminal_details(xlsx_path: str, html_path: str, terminal_output: str):
+    """Add the exact runtime analysis text to the existing HTML and workbook."""
+    if not HAS_OPENPYXL:
+        return
+
+    wb = load_workbook(xlsx_path)
+    if "Terminal Detail" in wb.sheetnames:
+        del wb["Terminal Detail"]
+    ws = wb.create_sheet("Terminal Detail")
+    ws["A1"] = "Genesys Runtime Analysis"
+    ws["A1"].fill = HEADER_FILL
+    ws["A1"].font = HEADER_FONT
+    ws["A1"].alignment = Alignment(horizontal="left")
+    ws["A2"] = "Exact console output from this report run"
+    ws["A2"].font = NORMAL_FONT
+    ws.column_dimensions["A"].width = 120
+    for row_number, line in enumerate(terminal_output.splitlines(), start=4):
+        cell = ws.cell(row=row_number, column=1, value=line)
+        cell.font = NORMAL_FONT
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "A4"
+    wb.save(xlsx_path)
+
+    if not os.path.exists(html_path):
+        return
+    with open(html_path, "r", encoding="utf-8") as report_file:
+        html_report = report_file.read()
+    detail_section = (
+        "<h2>Detailed Runtime Analysis</h2>"
+        "<p>Exact console output from this report run.</p>"
+        "<pre class=\"terminal-output\">"
+        f"{html.escape(terminal_output)}"
+        "</pre>"
+    )
+    if "</body>" in html_report:
+        html_report = html_report.replace("</body>", detail_section + "</body>", 1)
+    with open(html_path, "w", encoding="utf-8") as report_file:
+        report_file.write(html_report)

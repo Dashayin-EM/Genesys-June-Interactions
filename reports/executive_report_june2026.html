@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <title>Genesys June 2026 – Executive Report</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; color: #222; }
+    body { font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #222; }
     h1   { background:#1a3c5e; color:#fff; padding:16px 24px; border-radius:6px; font-size:1.3em; }
     h2   { color:#1a3c5e; border-bottom:2px solid #1a3c5e; padding-bottom:4px; margin-top:32px; }
-    table{ border-collapse:collapse; width:100%; margin-top:12px; }
+    table{ border-collapse:collapse; width:100%; margin-top:12px; font-size: 0.9em; }
     th   { background:#1a3c5e; color:#fff; padding:8px 12px; text-align:left; }
     td   { padding:8px 12px; border-bottom:1px solid #ddd; }
     tr:nth-child(even) td { background:#f4f8fc; }
@@ -15,13 +15,14 @@
     .kpi-box { display:inline-block; background:#f4f8fc; border:1px solid #c5d8ed;
                 border-radius:8px; padding:16px 24px; margin:8px; text-align:center; }
     .kpi-label { font-size:0.8em; color:#555; display:block; }
+    .failed-table th { background-color: #d9534f; }
     ul { line-height:2; }
     .footer { margin-top:40px; font-size:0.8em; color:#888; }
   </style>
 </head>
 <body>
   <h1>&#128202; Genesys Platform – June 2026 Interaction Report</h1>
-  <p>Generated: 23 Jul 2026 09:51</p>
+  <p>Generated: 23 Jul 2026 11:52</p>
 
   <h2>Overview</h2>
   <div class="kpi-box"><span class="kpi">34,441</span><span class="kpi-label">Total Interactions</span></div>
@@ -41,7 +42,7 @@
   <table>
     <tr><th>Metric</th><th>Value</th></tr>
     <tr><td>Abandon Rate (queue-based)</td><td>2.04%</td></tr>
-    <tr><td>Abandoned in Queue</td><td>0</td></tr>
+    <tr><td>Abandoned in Queue</td><td>418</td></tr>
   </table>
 
   <h2>Performance</h2>
@@ -55,6 +56,702 @@
   <h2>&#128680; Top Issues to Investigate</h2>
   <ul><li>Queue 'Customer Support Voice' – highest error volume (696 errors)</li><li>Queue 'Debtors Voice' – highest abandon rate (3.9%)</li><li>Agent 'Gareth Lane' – most RONA events (162)</li><li>4,796 wrap-up timeouts (agents not closing interactions on time)</li></ul>
 
+  <h2>🚨 Detailed Failed Interactions Log (Top 50)</h2>
+  <p>Review specific interaction details associated with operational failure codes, system disconnects, or workflow timeouts.</p>
+  <table border="1" class="dataframe failed-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Parsed_Timestamp</th>
+      <th>Users</th>
+      <th>Queue</th>
+      <th>Error Code</th>
+      <th>Disconnect Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2026-06-30 19:51:00</td>
+      <td>Njongozethu Sithole</td>
+      <td>Customer Support Email</td>
+      <td>email.error.integration.host</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 19:39:00</td>
+      <td>Dale Son; Laura Coutts</td>
+      <td>Customer Support Whatsapp</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:52:00</td>
+      <td>Laura Coutts; Sharon Phake</td>
+      <td>Exports Email</td>
+      <td></td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:41:00</td>
+      <td>Chanela Nel</td>
+      <td>Customer Support Voice; Reception Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:34:00</td>
+      <td>Tumelo Seipei; Lucrecia Cameron</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:22:00</td>
+      <td>John Goncalves</td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.dialplan.notFound</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:18:00</td>
+      <td>Kriss Vermeulen</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:17:00</td>
+      <td>Kriss Vermeulen</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:16:00</td>
+      <td>John Goncalves</td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.dialplan.notFound</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:14:00</td>
+      <td>Mark Thaver</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:14:00</td>
+      <td>Chanela Nel; Ian Runnalls</td>
+      <td>Reception Voice</td>
+      <td></td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 16:05:00</td>
+      <td>Mark Thaver</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:39:00</td>
+      <td>Matthew Noble</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:38:00</td>
+      <td>Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:27:00</td>
+      <td>Matthew Noble; Njongozethu Sithole</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:23:00</td>
+      <td>Wayne Killian; Roland Meyer</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:17:00</td>
+      <td>Gareth Lane; Kim Ladeira</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:17:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:17:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:17:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:13:00</td>
+      <td>Njongozethu Sithole</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:09:00</td>
+      <td>Tandile Ntiyantiya; Kriss Vermeulen</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:04:00</td>
+      <td>Gareth Lane; Bongiwe Mkupa; Abdullah Maal; Matthew Noble</td>
+      <td>Customer Support Email</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:04:00</td>
+      <td>Mbalenhle Ndlovu</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:02:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:01:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:01:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:01:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 15:01:00</td>
+      <td>Njongozethu Sithole</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:59:00</td>
+      <td>Botshelo Maringa</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:59:00</td>
+      <td>Tandile Ntiyantiya</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:59:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:59:00</td>
+      <td></td>
+      <td></td>
+      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:57:00</td>
+      <td>Matthew Noble</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:57:00</td>
+      <td>Chanela Nel; Lucrecia Cameron</td>
+      <td>Reception Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:57:00</td>
+      <td>Botshelo Maringa</td>
+      <td>Customer Support Voice</td>
+      <td>error.ininedgecontrol.session.inactive</td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:49:00</td>
+      <td>Lucrecia Cameron</td>
+      <td>Spam Queue</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:49:00</td>
+      <td>Mark Thaver</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:46:00</td>
+      <td>Dale Son; Cecilia Pila; Lynn Kanengoni</td>
+      <td>Customer Support Email</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:43:00</td>
+      <td>Mbali Dlamini</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:42:00</td>
+      <td>Bongiwe Mkupa; Nhluvuko Khosa</td>
+      <td>Customer Support Email</td>
+      <td></td>
+      <td>System</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:36:00</td>
+      <td>Mark Thaver</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>External</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:35:00</td>
+      <td>Sibusiso Sibambo</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:34:00</td>
+      <td>Botshelo Maringa</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+    <tr>
+      <td>2026-06-30 14:33:00</td>
+      <td>Botshelo Maringa</td>
+      <td>Customer Support Voice</td>
+      <td></td>
+      <td>Agent</td>
+    </tr>
+  </tbody>
+</table>
+
   <p class="footer">Source: Genesys Cloud interaction export – June 2026 &nbsp;|&nbsp; Generated by Antigravity analysis pipeline</p>
-</body>
+<h2>Detailed Runtime Analysis</h2><p>Exact console output from this report run.</p><pre class="terminal-output">
+======================================================================
+  🔍 GENESYS PLATFORM JUNE INTERACTIONS COMPREHENSIVE ANALYSIS
+======================================================================
+
+----------------------------------------------------------------------
+  1. DATA INTEGRITY &amp; OVERVIEW
+----------------------------------------------------------------------
+Total Exported CSV Records   : 34,441
+Dataset Date Range           : 2026-05-31 03:43:00 to 2026-06-30 23:38:00
+June 2026 Interaction Count  : 34,415 (99.92% of export dataset)
+   └─ (Note: 26 records started on May 31st at end of prior month)
+Full Export Completed Flag   : 34,441 (100.00%)
+
+----------------------------------------------------------------------
+  2. CHANNEL &amp; DIRECTION BREAKDOWN
+----------------------------------------------------------------------
+
+📱 Media Type Distribution:
+   - voice          : 22,519 ( 65.38%)
+   - email          : 11,677 ( 33.90%)
+   - message        :    233 (  0.68%)
+   - callback       :     10 (  0.03%)
+   - video          :      2 (  0.01%)
+
+🔄 Direction Distribution:
+   - Inbound        : 21,939 ( 63.70%)
+   - Outbound       :  7,067 ( 20.52%)
+   - Inbound/Outbound:  5,435 ( 15.78%)
+
+----------------------------------------------------------------------
+  3. ERROR &amp; OPERATIONAL FAILURE ROOT CAUSE
+----------------------------------------------------------------------
+Total Error Count Sum (CSV)              : 1,530
+Unique Interactions Impacted             : 6,804 (19.76%)
+   ⚠️  Note: sub-categories below overlap — one interaction can satisfy multiple flags.
+   - System Error Disconnects       : 4
+   - Flow Disconnects (mid-flow)    : 40
+   - All Flow Disconnects (incl. IVR self-service): 956
+   - Customer Disconnects           : 916
+   - Customer Short Disconnects     : 720
+   - Outcome Failures (Count)       : 0
+   - Wrap-up Timeouts (ININ-TIMEOUT): 4,796 (21.03% of interactions with wrapup)
+   - Agent RONA (Ring-No-Answer)    : 1,219 (3.54%)
+
+📴 Disconnect Type Breakdown:
+   - Agent               : 16,663 ( 48.38%)
+   - System              :  9,183 ( 26.66%)
+   - External            :  8,580 ( 24.91%)
+   - Conversation Inactivity:      7 (  0.02%)
+
+🚨 Top System Error Codes:
+   - Error Code &#x27;error.ininedgecontrol.session.inactive&#x27;: 647 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough&#x27;: 184 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.dialplan.notFound&#x27;: 144 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.station.notFound&#x27;: 116 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.noProceeding&#x27;: 43 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.timeout&#x27;: 39 occurrences
+   - Error Code &#x27;error.ininedgecontrol.ccxml&#x27;: 19 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.protocol.timeout&#x27;: 18 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.webrtc.endpoint.disconnect.iceIdleDetection&#x27;: 17 occurrences
+   - Error Code &#x27;error.ininedgecontrol.connection.insufficientPriviledges&#x27;: 13 occurrences
+
+----------------------------------------------------------------------
+  3B. DETAILED FAILED INTERACTIONS LOG
+----------------------------------------------------------------------
+
+🚨 Top 15 Most Recent Failed Interactions:
+   Parsed_Timestamp                                                                         Users                                   Queue                                         Error Code Disconnect Type
+2026-06-30 19:51:00                                                           Njongozethu Sithole                  Customer Support Email                       email.error.integration.host          System
+2026-06-30 19:39:00                                                        Dale Son; Laura Coutts               Customer Support Whatsapp                                                              Agent
+2026-06-30 16:52:00                                                    Laura Coutts; Sharon Phake                           Exports Email                                                             System
+2026-06-30 16:41:00                                                                   Chanela Nel Customer Support Voice; Reception Voice                                                           External
+2026-06-30 16:34:00                                               Tumelo Seipei; Lucrecia Cameron                  Customer Support Voice             error.ininedgecontrol.session.inactive        External
+2026-06-30 16:22:00                                                                John Goncalves                                         error.ininedgecontrol.connection.dialplan.notFound          System
+2026-06-30 16:18:00                                                               Kriss Vermeulen                  Customer Support Voice             error.ininedgecontrol.session.inactive        External
+2026-06-30 16:17:00                                                               Kriss Vermeulen                  Customer Support Voice                                                           External
+2026-06-30 16:16:00                                                                John Goncalves                                         error.ininedgecontrol.connection.dialplan.notFound          System
+2026-06-30 16:14:00                                                                   Mark Thaver                  Customer Support Voice                                                           External
+2026-06-30 16:14:00                                                     Chanela Nel; Ian Runnalls                         Reception Voice                                                             System
+2026-06-30 16:05:00                                                                   Mark Thaver                  Customer Support Voice                                                              Agent
+2026-06-30 15:39:00                                                                 Matthew Noble                  Customer Support Voice                                                           External
+2026-06-30 15:38:00 Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel                  Customer Support Voice                                                              Agent
+2026-06-30 15:27:00                                            Matthew Noble; Njongozethu Sithole                  Customer Support Voice                                                              Agent
+
+... and 6789 more. (Exported to detailed reports)
+
+----------------------------------------------------------------------
+  4. ABANDONMENT ANALYSIS
+----------------------------------------------------------------------
+Total Abandoned Interactions : 418
+  Abandon Rate (vs all)      : 1.21%  (out of all 34,441 interactions)
+  Abandon Rate (queue-based) : 2.04%  (out of 20,521 queue-entered interactions)
+Abandoned in Queue           : 418 (2.04% of queue-entered)
+Average Time to Abandon      : 00:00:28 (27.9s)
+Median Time to Abandon (p50) : 00:00:12 (12.2s)
+Max Time to Abandon          : 00:08:22 (501.5s)
+
+📊 Abandonment by Media Type:
+   - callback       :     0 /    10 (  0.00%)
+   - email          :     0 / 11,677 (  0.00%)
+   - message        :     0 /   233 (  0.00%)
+   - video          :     0 /     2 (  0.00%)
+   - voice          :   418 / 22,519 (  1.86%)
+
+----------------------------------------------------------------------
+  5. DURATION &amp; HANDLING TIME SLA METRICS
+----------------------------------------------------------------------
+(Note: All metrics computed across overall dataset and active non-zero interactions)
+
+⏱️ Handle Time (AHT)     : Active Mean=01:29:19 | Overall Mean=01:23:21 | p50=00:03:38 | p90=01:52:36 | Max=308:35:22
+⏱️ Queue Wait Time (ASA) : Active Mean=00:50:38 | Overall Mean=00:30:10 | p50=00:00:10 | p90=00:50:26 | Max=261:54:58
+⏱️ IVR Duration          : Active Mean=00:00:15 | Overall Mean=00:00:05 | p50=00:00:16 | p90=00:00:16 | Max=00:00:35
+⏱️ Hold Time             : Active Mean=03:03:52 | Overall Mean=00:55:38 | p50=00:25:02 | p90=04:48:30 | Max=208:41:25
+⏱️ Interaction Duration  : Active Mean=06:12:24 | Overall Mean=06:12:16 | p50=00:03:32 | p90=05:27:21 | Max=1154:00:18
+
+----------------------------------------------------------------------
+  6. QUEUE PERFORMANCE (PER-ENTITY PARTICIPATION)
+----------------------------------------------------------------------
+(Note: Volume reflects queue participation count; calls traversing multiple queues are counted once per queue)
+
+Queue Name                          | Volume   | Abandons | Abnd %  | Errors  | Avg Handle | Avg Wait  
+----------------------------------------------------------------------------------------------------
+Customer Support Voice              |   10,977 |      389 |   3.54% |     696 | 00:03:54   | 00:01:08  
+Customer Support Email              |    7,449 |        0 |   0.00% |      56 | 04:53:40   | 00:55:36  
+Info Email                          |    1,807 |        0 |   0.00% |       3 | 03:42:00   | 04:59:47  
+Exports Email                       |    1,308 |        0 |   0.00% |       6 | 04:26:03   | 04:27:09  
+Debtors Email                       |    1,143 |        0 |   0.00% |       1 | 01:33:58   | 00:29:59  
+Reception Voice                     |      545 |       20 |   3.67% |      22 | 00:03:54   | 00:05:36  
+Debtors Voice                       |      311 |       12 |   3.86% |      16 | 00:05:24   | 00:00:15  
+Exports WhatsApp Chat               |      124 |        0 |   0.00% |       6 | 05:40:16   | 02:13:27  
+Technical Email                     |      120 |        0 |   0.00% |       0 | 08:58:41   | 00:22:14  
+Spam Queue                          |      112 |        0 |   0.00% |       0 | 00:15:06   | 04:06:52  
+Customer Support Whatsapp           |       93 |        0 |   0.00% |      13 | 04:41:11   | 02:33:01  
+Technical Voice                     |       88 |        0 |   0.00% |       2 | 00:07:05   | 00:03:04  
+Debtors Whatsapp Chat               |       16 |        0 |   0.00% |       1 | 01:34:09   | 00:03:05  
+Dialler Accounts                    |        2 |        0 |   0.00% |       0 | 00:36:06   | 00:10:30  
+Dev_Customer Support                |        1 |        0 |   0.00% |       0 | 23:09:37   | 144:24:29 
+
+----------------------------------------------------------------------
+  7. USER / AGENT PERFORMANCE (PER-ENTITY PARTICIPATION)
+----------------------------------------------------------------------
+(Note: Volume reflects agent handling participation; calls involving multiple agents credit each handling agent)
+
+Agent Name                     | Volume   | Errors  | Timeouts | RONA   | Transfers | Avg Handle
+-----------------------------------------------------------------------------------------------
+Bongiwe Mkupa                  |    1,521 |      83 |      319 |    128 |       278 | 02:24:24  
+Tharusha Sewbachane            |    1,426 |      17 |      103 |     12 |       436 | 02:00:29  
+Zakes Mabonda                  |    1,391 |      23 |      172 |    107 |       137 | 03:08:43  
+Kishen Singh                   |    1,370 |      21 |      373 |    122 |       135 | 01:50:48  
+Kim Ladeira                    |    1,321 |      24 |      447 |    130 |       301 | 01:44:43  
+Njongozethu Sithole            |    1,300 |      77 |      159 |    102 |       253 | 02:35:45  
+Sizwe Nkosi                    |    1,293 |       9 |      124 |     78 |       214 | 01:23:25  
+Laura Coutts                   |    1,279 |      12 |      213 |     29 |       673 | 04:35:36  
+Debbie Venter                  |    1,236 |      39 |      215 |     75 |       388 | 02:33:13  
+Lynn Kanengoni                 |    1,212 |      31 |      197 |     56 |       235 | 03:48:41  
+Tumelo Seipei                  |    1,143 |     120 |      123 |     81 |       289 | 02:59:11  
+Gareth Lane                    |    1,080 |      18 |      515 |    162 |       271 | 03:35:46  
+Sharon Phake                   |    1,044 |       6 |      206 |     29 |       652 | 04:23:41  
+Katlego Pitjeng                |    1,039 |      59 |       86 |     58 |       186 | 02:46:21  
+Stefan Basson                  |      949 |      18 |      120 |     89 |       236 | 03:04:01  
+
+----------------------------------------------------------------------
+  8. ARCHITECT FLOW PATHS &amp; EXITS (PER-ENTITY PARTICIPATION)
+----------------------------------------------------------------------
+Flow Name                                     | Volume   | Flow Disconnects | Errors 
+-------------------------------------------------------------------------------------
+1. PROD CUSTOMER SUPPORT - Main IVR Flow -... |   10,153 |                0 |     586
+4. PROD CUSTOMER SUPPORT - Customer Suppor... |    6,451 |                0 |     360
+EM - Email Routing - Omnichannel - V2         |    6,352 |                0 |      16
+2. PROD CUSTOMER SUPPORT - Customer Suppor... |    3,102 |                0 |     234
+5. PROD CUSTOMER SUPPORT - Customer Suppor... |    2,383 |                0 |     241
+EM Info Flow                                  |    1,807 |                0 |       3
+Branch Skill in-Queue Flow v2                 |    1,610 |                0 |       7
+EM Accounts Email Flow                        |    1,065 |                0 |       1
+Support Contact Routing Flow                  |      971 |                0 |       3
+EM Exports Flow                               |      895 |                0 |       3
+1. PROD CORP RECEPTION - Main IVR Flow - g... |      508 |                0 |      18
+No Contact Last Agent Routing Flow            |      496 |                0 |       2
+2. PROD CORP RECEPTION - Global Reception     |      410 |                0 |      17
+1. PROD ACCOUNTS - Main IVR Flow - genesys... |      277 |                0 |      10
+3. PROD ACCOUNTS - AR Clerk Reception         |      215 |                0 |      12
+
+🚪 Top Flow Exit Reasons:
+   - Exit Reason &#x27;1.0&#x27;: 18,341 occurrences
+   - Exit Reason &#x27;2.0&#x27;: 1,474 occurrences
+   - Exit Reason &#x27;3.0&#x27;: 389 occurrences
+   - Exit Reason &#x27;4.0&#x27;: 169 occurrences
+   - Exit Reason &#x27;5.0&#x27;: 71 occurrences
+   - Exit Reason &#x27;6.0&#x27;: 28 occurrences
+   - Exit Reason &#x27;8.0&#x27;: 16 occurrences
+   - Exit Reason &#x27;7.0&#x27;: 15 occurrences
+   - Exit Reason &#x27;9.0&#x27;: 4 occurrences
+   - Exit Reason &#x27;12.0&#x27;: 3 occurrences
+
+🚪 Top Flow-Out Types:
+   - Flow-Out Type &#x27;acd&#x27;: 2,826 occurrences
+   - Flow-Out Type &#x27;ivr&#x27;: 11 occurrences
+   - Flow-Out Type &#x27;customer&#x27;: 4 occurrences
+   - Flow-Out Type &#x27;ivr; acd&#x27;: 2 occurrences
+   - Flow-Out Type &#x27;customer; acd&#x27;: 1 occurrences
+   - Flow-Out Type &#x27;acd; ivr&#x27;: 1 occurrences
+
+----------------------------------------------------------------------
+  9. WRAP-UP CODES ANALYSIS (PER-ASSIGNMENT FREQUENCY)
+----------------------------------------------------------------------
+Top 15 Assigned Wrap-up Codes:
+   - 09. Information Enquiry                      :  5,678 ( 16.49%)
+   - ININ-WRAP-UP-TIMEOUT                         :  4,796 ( 13.93%)
+   - 02.Resolved - Quote / price query            :  4,451 ( 12.92%)
+   - 03.Resolved - Sales order                    :  2,945 (  8.55%)
+   - 14. Unresolved / Escalation / Transferred    :  2,299 (  6.68%)
+   - 10. Follow up on back order / Order ready / Delivery:  1,663 (  4.83%)
+   - 15. SPAM                                     :  1,602 (  4.65%)
+   - 01.Resolved - Stock availability             :  1,558 (  4.52%)
+   - 13. Call dropped / return call required      :    433 (  1.26%)
+   - 04.Resolved - Documentation                  :    385 (  1.12%)
+   - Payments                                     :    312 (  0.91%)
+   - Document Request                             :    260 (  0.75%)
+   - 18. Export referral                          :    237 (  0.69%)
+   - 05.Resolved - Technical assistance           :    232 (  0.67%)
+   - Account Maintenance                          :    211 (  0.61%)
+
+----------------------------------------------------------------------
+  10. SECURITY, JOURNEY &amp; AGENT EXCEPTIONS
+----------------------------------------------------------------------
+🔒 Authenticated Status Distribution:
+
+🗺️ Has Customer Journey Data:
+   - NO             : 34,441 (100.00%)
+
+🎙️ Supervisor Barged-In Count    : 0
+🔀 Total Transfers Executed      : 3,672
+🔀 Interactions Transferred (%)   : 3,110 (9.03%)
+
+🧭 Top IVR Segment Paths:
+   - Segment &#x27;1.0&#x27;: 11,109 interactions
+   - Segment &#x27;2.0&#x27;: 14 interactions
+
+----------------------------------------------------------------------
+  11. DAILY TREND ANALYSIS
+----------------------------------------------------------------------
+Date         | Interactions | Errors   | Abandons  | Abnd %  | AHT       
+----------------------------------------------------------------------
+2026-05-31   |           26 |        0 |         0 |   0.00% | 01:07:37  
+2026-06-01   |        1,572 |       72 |        14 |   0.89% | 01:25:23  
+2026-06-02   |        1,732 |       72 |        21 |   1.21% | 01:32:41  
+2026-06-03   |        1,693 |       53 |        17 |   1.00% | 01:21:53  
+2026-06-04   |        1,801 |       69 |        14 |   0.78% | 01:14:44  
+2026-06-05   |        1,487 |       46 |        12 |   0.81% | 01:20:14  
+2026-06-06   |           48 |        1 |         0 |   0.00% | 00:29:28  
+2026-06-07   |           36 |        0 |         0 |   0.00% | 00:56:31  
+2026-06-08   |        1,720 |       80 |        11 |   0.64% | 01:07:13  
+2026-06-09   |        1,756 |       65 |        24 |   1.37% | 01:22:29  
+2026-06-10   |        1,877 |      213 |        22 |   1.17% | 01:04:33  
+2026-06-11   |        1,840 |       48 |        30 |   1.63% | 01:03:21  
+2026-06-12   |        1,317 |       54 |         4 |   0.30% | 02:20:33  
+2026-06-13   |           38 |        0 |         0 |   0.00% | 00:36:14  
+2026-06-14   |           38 |        0 |         0 |   0.00% | 03:21:40  
+2026-06-15   |        1,212 |       23 |        12 |   0.99% | 01:40:04  
+2026-06-16   |          145 |        2 |         0 |   0.00% | 02:30:39  
+2026-06-17   |        1,870 |       73 |        48 |   2.57% | 01:10:18  
+2026-06-18   |        1,808 |       56 |        23 |   1.27% | 01:03:42  
+2026-06-19   |        1,605 |       95 |        44 |   2.74% | 01:57:21  
+2026-06-20   |           45 |        3 |         0 |   0.00% | 01:47:08  
+2026-06-21   |           21 |        0 |         0 |   0.00% | 01:25:18  
+2026-06-22   |        1,739 |       82 |        16 |   0.92% | 01:27:47  
+2026-06-23   |        1,667 |       76 |        21 |   1.26% | 01:42:02  
+2026-06-24   |        1,688 |       60 |        17 |   1.01% | 01:09:32  
+2026-06-25   |        1,499 |       64 |        28 |   1.87% | 01:16:28  
+2026-06-26   |        1,345 |       66 |        19 |   1.41% | 02:01:41  
+2026-06-27   |           75 |       11 |         0 |   0.00% | 00:12:04  
+2026-06-28   |           31 |        0 |         0 |   0.00% | 01:04:55  
+2026-06-29   |        1,460 |       87 |        13 |   0.89% | 01:07:42  
+2026-06-30   |        1,250 |       59 |         8 |   0.64% | 01:04:57  
+
+----------------------------------------------------------------------
+  12. HOURLY DISTRIBUTION &amp; PEAKS
+----------------------------------------------------------------------
+Peak Traffic Hour          : 10:00 - 10:59 (4,306 interactions)
+Peak Error Hour            : 10:00 - 10:59 (353 errors)
+
+======================================================================
+  13. EXECUTIVE AUTOMATED INSIGHTS &amp; RECOMMENDATIONS
+======================================================================
+📌 TOP ACTIONABLE INSIGHTS:
+
+ 1. Top Queues by Error Volume   : Customer Support Voice, Customer Support Email, Reception Voice
+ 2. Top Queues by Abandon Rate % : Debtors Voice (3.9%), Reception Voice (3.7%), Customer Support Voice (3.5%)
+ 3. Top Agents with Wrap-up Timeouts : Gareth Lane, Kim Ladeira, Kishen Singh
+ 4. Top Agents with Ring-No-Answer   : Gareth Lane, Kim Ladeira, Bongiwe Mkupa
+ 5. Wrap-Up Timeout Alert        : 4,796 interactions timed out on wrap-up, defaulting to ININ-WRAP-UP-TIMEOUT.
+ 6. Agent RONA Alert             : 1,219 interactions had agent no-answers, routing back to queue.
+
+======================================================================
+  ✅ ANALYSIS COMPLETED SUCCESSFULLY
+======================================================================
+
+╔════════════════════════════════════════════════════════════╗
+║      GENESYS PLATFORM – JUNE 2026 INTERACTION REPORT       ║
+╚════════════════════════════════════════════════════════════╝
+
+OVERVIEW
+  Total Interactions   :     34,441
+  Date Range           : 31 May 2026 to 30 Jun 2026
+
+ERRORS &amp; FAILURES
+  Impacted Interactions:      6,804  (19.76% of total)
+  System Error Disconn.:          4
+  Flow Disconnects     :         40
+  Top Error Code       : error.ininedgecontrol.session.inactive (647 occurrences)
+
+ABANDONMENT
+  Abandon Rate (queue) :      2.04%
+  Abandoned in Queue   :        418
+  Avg Time to Abandon  : 00:00:28
+
+PERFORMANCE
+  Avg Handle Time (AHT): 01:29:19
+  Avg Queue Wait (ASA) : 00:50:38
+  Peak Traffic Hour    : 10:00 – 10:59
+
+TOP ISSUES TO INVESTIGATE
+  1. Queue &#x27;Customer Support Voice&#x27; – highest error volume (696 errors)
+  2. Queue &#x27;Debtors Voice&#x27; – highest abandon rate (3.9%)
+  3. Agent &#x27;Gareth Lane&#x27; – most RONA events (162)
+  4. 4,796 wrap-up timeouts (agents not closing interactions on time)
+
+📄 Executive HTML report saved → C:\Users\dashayin\Desktop\Work\Genesys June Interactions\reports\executive_report_june2026.html
+
+</pre></body>
 </html>

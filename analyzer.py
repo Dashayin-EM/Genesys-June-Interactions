@@ -17,6 +17,7 @@ def explode_multivalued_column(df, col_name):
     exploded['split_val'] = exploded['split_val'].str.strip()
     exploded = exploded[exploded['split_val'] != '']
     return exploded
+    
 
 def run_analysis(df):
     safe_print("🔍 GENESYS PLATFORM JUNE INTERACTIONS COMPREHENSIVE ANALYSIS", "=")
@@ -156,6 +157,34 @@ def run_analysis(df):
             err_code_counts = err_df[cfg.ERROR_CODE_COL].value_counts().head(10)
             for err_code, count in err_code_counts.items():
                 print(f"   - Error Code '{err_code}': {count:,} occurrences")
+
+    # -------------------------------------------------------------
+    # 3B. DETAILED FAILED INTERACTIONS
+    # -------------------------------------------------------------
+    safe_print("3B. DETAILED FAILED INTERACTIONS LOG", "-")
+    if not impacted_interactions.empty:
+        # Dynamically define columns to display based on availability
+        desired_cols = [
+            'Parsed_Timestamp', 'Interaction ID', cfg.AGENT_COL, cfg.QUEUE_COL, 
+            cfg.ERROR_CODE_COL, cfg.DISCONNECT_TYPE_COL
+        ]
+        available_cols = [col for col in desired_cols if col in impacted_interactions.columns]
+        
+        # Sort by timestamp to get the most recent failures
+        if 'Parsed_Timestamp' in available_cols:
+            failed_preview = impacted_interactions.sort_values(by='Parsed_Timestamp', ascending=False)
+        else:
+            failed_preview = impacted_interactions
+
+        # Select columns and fill NAs for a cleaner print
+        failed_preview = failed_preview[available_cols].fillna('N/A').head(15)
+        
+        print("\n🚨 Top 15 Most Recent Failed Interactions:")
+        print(failed_preview.to_string(index=False))
+        if err_interaction_count > 15:
+            print(f"\n... and {err_interaction_count - 15} more. (Exported to detailed reports)")
+    else:
+        print("\n✅ No failed interactions found in this dataset.")
 
     # -------------------------------------------------------------
     # 4. ABANDONMENT ANALYSIS
@@ -412,6 +441,7 @@ def run_analysis(df):
         'q_summary': q_summary if not exp_queue.empty else None,
         'a_summary': a_summary if not exp_agent.empty else None,
         'df': df,
+        'impacted_interactions': impacted_interactions # Added Context for HTML parsing
     }
     print_executive_report(_exec_ctx)
 
@@ -432,6 +462,7 @@ def print_executive_report(ctx: dict):
     wrapup_timeouts      = ctx['wrapup_timeouts']
     q_summary            = ctx['q_summary']
     a_summary            = ctx['a_summary']
+    impacted_df          = ctx['impacted_interactions'] # Retrieve impacted records
 
     from utils import format_seconds
 
@@ -514,6 +545,24 @@ def print_executive_report(ctx: dict):
     print(report_text)
     print()
 
+    # Create HTML table for Failed Interactions
+    failed_table_html = "<p>No failed interactions recorded.</p>"
+    if not impacted_df.empty:
+        # Define preferred columns ensuring they exist in the dataframe
+        report_cols = [
+            'Parsed_Timestamp', 'Interaction ID', cfg.AGENT_COL, cfg.QUEUE_COL, 
+            cfg.ERROR_CODE_COL, cfg.DISCONNECT_TYPE_COL
+        ]
+        valid_cols = [col for col in report_cols if col in impacted_df.columns]
+        
+        # Sort and take top 50 for the web report to keep it clean
+        if 'Parsed_Timestamp' in valid_cols:
+            df_to_html = impacted_df.sort_values(by='Parsed_Timestamp', ascending=False)[valid_cols].head(50)
+        else:
+            df_to_html = impacted_df[valid_cols].head(50)
+            
+        failed_table_html = df_to_html.fillna('N/A').to_html(index=False, classes='failed-table')
+
     # Save HTML report
     report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reports')
     os.makedirs(report_dir, exist_ok=True)
@@ -526,10 +575,10 @@ def print_executive_report(ctx: dict):
   <meta charset="UTF-8">
   <title>Genesys June 2026 – Executive Report</title>
   <style>
-    body {{ font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; color: #222; }}
+    body {{ font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #222; }}
     h1   {{ background:#1a3c5e; color:#fff; padding:16px 24px; border-radius:6px; font-size:1.3em; }}
     h2   {{ color:#1a3c5e; border-bottom:2px solid #1a3c5e; padding-bottom:4px; margin-top:32px; }}
-    table{{ border-collapse:collapse; width:100%; margin-top:12px; }}
+    table{{ border-collapse:collapse; width:100%; margin-top:12px; font-size: 0.9em; }}
     th   {{ background:#1a3c5e; color:#fff; padding:8px 12px; text-align:left; }}
     td   {{ padding:8px 12px; border-bottom:1px solid #ddd; }}
     tr:nth-child(even) td {{ background:#f4f8fc; }}
@@ -537,6 +586,7 @@ def print_executive_report(ctx: dict):
     .kpi-box {{ display:inline-block; background:#f4f8fc; border:1px solid #c5d8ed;
                 border-radius:8px; padding:16px 24px; margin:8px; text-align:center; }}
     .kpi-label {{ font-size:0.8em; color:#555; display:block; }}
+    .failed-table th {{ background-color: #d9534f; }}
     ul {{ line-height:2; }}
     .footer {{ margin-top:40px; font-size:0.8em; color:#888; }}
   </style>
@@ -577,6 +627,10 @@ def print_executive_report(ctx: dict):
   <h2>&#128680; Top Issues to Investigate</h2>
   <ul>{issues_html}</ul>
 
+  <h2>🚨 Detailed Failed Interactions Log (Top 50)</h2>
+  <p>Review specific interaction details associated with operational failure codes, system disconnects, or workflow timeouts.</p>
+  {failed_table_html}
+
   <p class="footer">Source: Genesys Cloud interaction export – June 2026 &nbsp;|&nbsp; Generated by Antigravity analysis pipeline</p>
 </body>
 </html>
@@ -584,4 +638,3 @@ def print_executive_report(ctx: dict):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"📄 Executive HTML report saved → {html_path}\n")
-

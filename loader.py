@@ -49,7 +49,14 @@ def load_data(filepath):
             break
 
     if timestamp_col:
-        df['Parsed_Timestamp'] = pd.to_datetime(df[timestamp_col], errors='coerce')
+        # The supplied export uses month/day/two-digit-year and a 12-hour clock.
+        # Being explicit prevents locale settings from changing daily/hourly outputs.
+        if timestamp_col == 'Date':
+            df['Parsed_Timestamp'] = pd.to_datetime(
+                df[timestamp_col], format='%m/%d/%y %I:%M %p', errors='coerce'
+            )
+        else:
+            df['Parsed_Timestamp'] = pd.to_datetime(df[timestamp_col], errors='coerce')
         df['DateOnly'] = df['Parsed_Timestamp'].dt.date
         df['Hour'] = df['Parsed_Timestamp'].dt.hour
         df['DayOfWeek'] = df['Parsed_Timestamp'].dt.day_name()
@@ -69,7 +76,6 @@ def load_data(filepath):
     # -------------------------------------------------------------
     flag_columns = {
         'Abandoned': 'Abandoned_Bool',
-        'Abandoned in Queue': 'Abandoned_in_Queue_Bool',
         'Authenticated': 'Authenticated_Bool',
         'Has Customer Journey Data': 'Has_Customer_Journey_Data_Bool',
         'Barged-In': 'Barged_In_Bool',
@@ -80,6 +86,14 @@ def load_data(filepath):
             df[target_col] = parse_boolean_flag(df[orig_col])
         else:
             df[target_col] = False
+
+    # Genesys stores the queue name in this field (for example, "Customer
+    # Support Voice"), rather than a YES/NO value. A populated value therefore
+    # identifies an interaction abandoned in queue.
+    if 'Abandoned in Queue' in df.columns:
+        df['Abandoned_in_Queue_Bool'] = df['Abandoned in Queue'].fillna('').astype(str).str.strip().ne('')
+    else:
+        df['Abandoned_in_Queue_Bool'] = False
 
     # -------------------------------------------------------------
     # 4. PARSE NUMERIC METRICS & COUNTS
@@ -102,4 +116,4 @@ def load_data(filepath):
         if tcol in df.columns:
             df[tcol] = df[tcol].fillna('').astype(str).str.strip()
 
-    return df
+    return df
