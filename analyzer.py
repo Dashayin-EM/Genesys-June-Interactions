@@ -499,7 +499,7 @@ def print_executive_report(ctx: dict):
         "ABANDONMENT",
         f"  Abandon Rate (queue) : {abandon_rate_queue:>9.2f}%",
         f"  Abandoned in Queue   : {abandoned_in_queue:>10,}",
-        f"  Avg Time to Abandon  : {format_seconds(df['Time to Abandon_Seconds'].mean()) if 'Time to Abandon_Seconds' in df.columns else 'N/A'}",
+        f"  Avg Time to Abandon  : {format_seconds(df.loc[df['Abandoned_Bool'], 'Time to Abandon_Seconds'].mean()) if 'Time to Abandon_Seconds' in df.columns else 'N/A'}",
         "",
         "PERFORMANCE",
         f"  Avg Handle Time (AHT): {format_seconds(aht_mean)}",
@@ -584,4 +584,4 @@ def print_executive_report(ctx: dict):
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"📄 Executive HTML report saved → {html_path}\n")
-
+
