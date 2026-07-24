@@ -260,6 +260,15 @@ def run_analysis(df):
                 max_val = active_series.max()
                 print(f"⏱️ {label:<22}: Active Mean={format_seconds(act_mean)} | Overall Mean={format_seconds(all_mean)} | p50={format_seconds(p50_val)} | p90={format_seconds(p90_val)} | Max={format_seconds(max_val)}")
 
+    aht_by_media = {}
+    if cfg.MEDIA_TYPE_COL in df.columns and 'Total Handle_Seconds' in df.columns:
+        print("\n📊 Average Handle Time (AHT) by Media Type:")
+        handled_df = df[df['Total Handle_Seconds'] > 0]
+        aht_by_media_series = handled_df.groupby(cfg.MEDIA_TYPE_COL)['Total Handle_Seconds'].mean()
+        aht_by_media = aht_by_media_series.to_dict()
+        for media, aht_val in aht_by_media.items():
+            print(f"   - {media:<15}: {format_seconds(aht_val)}")
+
     # -------------------------------------------------------------
     # 6. EXPLODED MULTI-VALUE ANALYSIS (QUEUES, AGENTS, FLOWS, WRAP-UPS)
     # -------------------------------------------------------------
@@ -450,6 +459,7 @@ def run_analysis(df):
         'wrapup_timeouts': int(wrapup_timeouts),
         'q_summary': q_summary if not exp_queue.empty else None,
         'a_summary': a_summary if not exp_agent.empty else None,
+        'aht_by_media': aht_by_media,
         'df': df,
         'impacted_interactions': impacted_interactions # Added Context for HTML parsing
     }
@@ -473,6 +483,7 @@ def print_executive_report(ctx: dict):
     q_summary            = ctx['q_summary']
     a_summary            = ctx['a_summary']
     impacted_df          = ctx['impacted_interactions'] # Retrieve impacted records
+    aht_by_media         = ctx.get('aht_by_media', {})
 
     from utils import format_seconds
 
@@ -544,11 +555,19 @@ def print_executive_report(ctx: dict):
         "",
         "PERFORMANCE",
         f"  Avg Handle Time (AHT): {format_seconds(aht_mean)}",
+    ]
+    
+    for media, aht_val in aht_by_media.items():
+        lines.append(f"    - {media}: {format_seconds(aht_val)}")
+        
+    lines.extend([
         f"  Avg Queue Wait (ASA) : {format_seconds(asa_mean)}",
         f"  Peak Traffic Hour    : {peak_label}",
         "",
         "TOP ISSUES TO INVESTIGATE",
-    ] + [f"  {i+1}. {issue}" for i, issue in enumerate(issues)]
+    ])
+
+    lines.extend([f"  {i+1}. {issue}" for i, issue in enumerate(issues)])
 
     report_text = '\n'.join(lines)
     print()
@@ -589,6 +608,14 @@ def print_executive_report(ctx: dict):
     html_path = os.path.join(report_dir, 'executive_report_june2026.html')
 
     issues_html = ''.join(f'<li>{issue}</li>' for issue in issues)
+    
+    # Build the performance table rows dynamically to include media types
+    perf_rows = f"<tr><td>Avg Handle Time (AHT)</td><td>{format_seconds(aht_mean)}</td></tr>"
+    for media, aht_val in aht_by_media.items():
+        perf_rows += f"<tr><td style='padding-left:25px;'>&#8627; {media}</td><td>{format_seconds(aht_val)}</td></tr>"
+    perf_rows += f"<tr><td>Avg Queue Wait (ASA)</td><td>{format_seconds(asa_mean)}</td></tr>"
+    perf_rows += f"<tr><td>Peak Traffic Hour</td><td>{peak_label}</td></tr>"
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -639,9 +666,7 @@ def print_executive_report(ctx: dict):
   <h2>Performance</h2>
   <table>
     <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Avg Handle Time (AHT)</td><td>{format_seconds(aht_mean)}</td></tr>
-    <tr><td>Avg Queue Wait (ASA)</td><td>{format_seconds(asa_mean)}</td></tr>
-    <tr><td>Peak Traffic Hour</td><td>{peak_label}</td></tr>
+    {perf_rows}
   </table>
 
   <h2>&#128680; Top Issues to Investigate</h2>

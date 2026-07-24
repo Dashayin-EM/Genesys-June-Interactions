@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import warnings
+import config as cfg  # Imported your config!
+
 warnings.filterwarnings('ignore', category=UserWarning, module='pandas')
 
 def parse_duration_to_seconds(val):
@@ -40,23 +42,23 @@ def load_data(filepath):
     print(f"✅ Loaded {len(df):,} total interaction records across {len(df.columns)} columns.")
 
     # -------------------------------------------------------------
-    # 1. PARSE TIMESTAMPS
+    # 1. PARSE TIMESTAMPS (Made highly resilient to localized formats)
     # -------------------------------------------------------------
     timestamp_col = None
-    for col in ['Date', 'Partial Result Timestamp', 'Start Time', 'Conversation Start']:
+    for col in [cfg.TIMESTAMP_COL, 'Partial Result Timestamp', 'Start Time', 'Conversation Start']:
         if col in df.columns:
             timestamp_col = col
             break
 
     if timestamp_col:
-        # The supplied export uses month/day/two-digit-year and a 12-hour clock.
-        # Being explicit prevents locale settings from changing daily/hourly outputs.
-        if timestamp_col == 'Date':
-            df['Parsed_Timestamp'] = pd.to_datetime(
-                df[timestamp_col], format='%m/%d/%y %I:%M %p', errors='coerce'
-            )
-        else:
+        # Using format='mixed' allows pandas to infer the format dynamically, preventing 
+        # NaN coercion if a different admin exports the CSV with different local PC settings.
+        try:
+            df['Parsed_Timestamp'] = pd.to_datetime(df[timestamp_col], format='mixed', errors='coerce')
+        except ValueError:
+            # Fallback if pandas version is older
             df['Parsed_Timestamp'] = pd.to_datetime(df[timestamp_col], errors='coerce')
+            
         df['DateOnly'] = df['Parsed_Timestamp'].dt.date
         df['Hour'] = df['Parsed_Timestamp'].dt.hour
         df['DayOfWeek'] = df['Parsed_Timestamp'].dt.day_name()
@@ -64,7 +66,10 @@ def load_data(filepath):
     # -------------------------------------------------------------
     # 2. PARSE DURATIONS (HH:MM:SS.sss -> Seconds)
     # -------------------------------------------------------------
-    duration_columns = ['Duration', 'Total Handle', 'Total Queue', 'Total IVR', 'Total Hold', 'Time to Abandon']
+    duration_columns = [
+        cfg.DURATION_COL, cfg.TOTAL_HANDLE_COL, cfg.TOTAL_QUEUE_COL, 
+        cfg.TOTAL_IVR_COL, cfg.TOTAL_HOLD_COL, cfg.TIME_TO_ABANDON_COL
+    ]
     for dcol in duration_columns:
         if dcol in df.columns:
             df[f'{dcol}_Seconds'] = df[dcol].apply(parse_duration_to_seconds)
@@ -75,11 +80,11 @@ def load_data(filepath):
     # 3. PARSE BOOLEAN FLAGS (YES/NO -> True/False)
     # -------------------------------------------------------------
     flag_columns = {
-        'Abandoned': 'Abandoned_Bool',
-        'Authenticated': 'Authenticated_Bool',
-        'Has Customer Journey Data': 'Has_Customer_Journey_Data_Bool',
-        'Barged-In': 'Barged_In_Bool',
-        'Full Export Completed': 'Full_Export_Completed_Bool'
+        cfg.ABANDONED_COL: 'Abandoned_Bool',
+        cfg.AUTHENTICATED_COL: 'Authenticated_Bool',
+        cfg.HAS_CUSTOMER_JOURNEY_DATA_COL: 'Has_Customer_Journey_Data_Bool',
+        cfg.BARGED_IN_COL: 'Barged_In_Bool',
+        cfg.FULL_EXPORT_COMPLETED_COL: 'Full_Export_Completed_Bool'
     }
     for orig_col, target_col in flag_columns.items():
         if orig_col in df.columns:
@@ -90,8 +95,8 @@ def load_data(filepath):
     # Genesys stores the queue name in this field (for example, "Customer
     # Support Voice"), rather than a YES/NO value. A populated value therefore
     # identifies an interaction abandoned in queue.
-    if 'Abandoned in Queue' in df.columns:
-        df['Abandoned_in_Queue_Bool'] = df['Abandoned in Queue'].fillna('').astype(str).str.strip().ne('')
+    if cfg.ABANDONED_QUEUE_COL in df.columns:
+        df['Abandoned_in_Queue_Bool'] = df[cfg.ABANDONED_QUEUE_COL].fillna('').astype(str).str.strip().ne('')
     else:
         df['Abandoned_in_Queue_Bool'] = False
 
@@ -99,10 +104,11 @@ def load_data(filepath):
     # 4. PARSE NUMERIC METRICS & COUNTS
     # -------------------------------------------------------------
     numeric_columns = [
-        'Error Count', 'Transfers', 'Not Responding',
-        'Outcome Success', 'Outcome Success %', 'Outcome Failure', 'Outcome Failure %',
-        'System Error Disconnect', 'Flow Disconnect', 'All Flow Disconnect',
-        'Customer Disconnect', 'Customer Short Disconnect', 'Flow Exit'
+        cfg.ERROR_COUNT_COL, cfg.TRANSFERS_COL, cfg.NOT_RESPONDING_COL,
+        cfg.OUTCOME_SUCCESS_COL, cfg.OUTCOME_SUCCESS_PCT_COL, 
+        cfg.OUTCOME_FAILURE_COL, cfg.OUTCOME_FAILURE_PCT_COL,
+        cfg.SYSTEM_ERROR_DISCONNECT_COL, cfg.FLOW_DISCONNECT_COL, cfg.ALL_FLOW_DISCONNECT_COL,
+        cfg.CUSTOMER_DISCONNECT_COL, cfg.CUSTOMER_SHORT_DISCONNECT_COL, cfg.FLOW_EXIT_COL
     ]
     for ncol in numeric_columns:
         if ncol in df.columns:
@@ -110,15 +116,16 @@ def load_data(filepath):
         else:
             df[f'{ncol}_Clean'] = 0.0
 
-    # Fill NA string fields with empty string for clean searching
-# Fill NA string fields with empty string for clean searching
+    # -------------------------------------------------------------
+    # 5. CLEAN TEXT & IDENTIFIER FIELDS
+    # -------------------------------------------------------------
     text_cols = [
-        'Wrap-up', 'Disconnect Type', 'Error Code', 'Users', 'Queue', 'Flow', 
-        'Media Type', 'Direction', 'Users - Not Responding',
-        # --- Newly Added Columns Below ---
-        'ANI', 'Remote', 'DNIS', 'First Queue', 
-        'Failed Outcomes', 'Incomplete Outcomes', 
-        'Flow-Out Type', 'IVR Segments'
+        cfg.WRAP_UP_COL, cfg.DISCONNECT_TYPE_COL, cfg.ERROR_CODE_COL, 
+        cfg.AGENT_COL, cfg.QUEUE_COL, cfg.FLOW_COL, 
+        cfg.MEDIA_TYPE_COL, cfg.DIRECTION_COL, cfg.USERS_NOT_RESPONDING_COL,
+        cfg.ANI_COL, cfg.REMOTE_COL, cfg.DNIS_COL, cfg.FIRST_QUEUE_COL, 
+        cfg.FAILED_OUTCOMES_COL, cfg.INCOMPLETE_OUTCOMES_COL, 
+        cfg.FLOW_OUT_TYPE_COL, cfg.IVR_SEGMENTS_COL, 'Interaction ID'
     ]
     for tcol in text_cols:
         if tcol in df.columns:

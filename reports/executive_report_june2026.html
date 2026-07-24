@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>&#128202; Genesys Platform – June 2026 Interaction Report</h1>
-  <p>Generated: 23 Jul 2026 12:58</p>
+  <p>Generated: 24 Jul 2026 07:27</p>
 
   <h2>Overview</h2>
   <div class="kpi-box"><span class="kpi">34,441</span><span class="kpi-label">Total Interactions</span></div>
@@ -48,9 +48,7 @@
   <h2>Performance</h2>
   <table>
     <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Avg Handle Time (AHT)</td><td>01:29:19</td></tr>
-    <tr><td>Avg Queue Wait (ASA)</td><td>00:50:38</td></tr>
-    <tr><td>Peak Traffic Hour</td><td>10:00 – 10:59</td></tr>
+    <tr><td>Avg Handle Time (AHT)</td><td>01:29:19</td></tr><tr><td style='padding-left:25px;'>&#8627; callback</td><td>00:19:39</td></tr><tr><td style='padding-left:25px;'>&#8627; email</td><td>04:05:54</td></tr><tr><td style='padding-left:25px;'>&#8627; message</td><td>04:57:27</td></tr><tr><td style='padding-left:25px;'>&#8627; voice</td><td>00:03:35</td></tr><tr><td>Avg Queue Wait (ASA)</td><td>00:50:38</td></tr><tr><td>Peak Traffic Hour</td><td>10:00 – 10:59</td></tr>
   </table>
 
   <h2>&#128680; Top Issues to Investigate</h2>
@@ -845,6 +843,12 @@ Max Time to Abandon          : 00:08:22 (501.5s)
 ⏱️ Hold Time             : Active Mean=03:03:52 | Overall Mean=00:55:38 | p50=00:25:02 | p90=04:48:30 | Max=208:41:25
 ⏱️ Interaction Duration  : Active Mean=06:12:24 | Overall Mean=06:12:16 | p50=00:03:32 | p90=05:27:21 | Max=1154:00:18
 
+📊 Average Handle Time (AHT) by Media Type:
+   - callback       : 00:19:39
+   - email          : 04:05:54
+   - message        : 04:57:27
+   - voice          : 00:03:35
+
 ----------------------------------------------------------------------
   6. QUEUE PERFORMANCE (PER-ENTITY PARTICIPATION)
 ----------------------------------------------------------------------
@@ -1048,6 +1052,10 @@ ABANDONMENT
 
 PERFORMANCE
   Avg Handle Time (AHT): 01:29:19
+    - callback: 00:19:39
+    - email: 04:05:54
+    - message: 04:57:27
+    - voice: 00:03:35
   Avg Queue Wait (ASA) : 00:50:38
   Peak Traffic Hour    : 10:00 – 10:59
 

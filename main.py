@@ -34,7 +34,7 @@ def main():
     terminal_output = terminal_buffer.getvalue()
     print(terminal_output, end='')
 
-    # 3. Export findings to Excel (9 tabs)
+    # 3. Export findings to Excel (10 tabs)
     export_to_excel(df, xlsx_path)
     
     # 4. Append exact runtime terminal output to the logs

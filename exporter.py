@@ -30,7 +30,7 @@ from utils import format_seconds
 try:
     from openpyxl import load_workbook
     from openpyxl.styles import (
-        PatternFill, Font, Alignment, Border, Side, GradientFill
+        PatternFill, Font, Alignment, Border, Side
     )
     from openpyxl.utils import get_column_letter
     HAS_OPENPYXL = True
@@ -38,7 +38,7 @@ except ImportError:
     HAS_OPENPYXL = False
 
 
-# ── Colour palette ──────────────────────────────────────────────────────────
+# ── Colour palette & Formatting ─────────────────────────────────────────────
 HEADER_FILL   = PatternFill("solid", fgColor="1A3C5E") if HAS_OPENPYXL else None
 ALT_ROW_FILL  = PatternFill("solid", fgColor="F4F8FC") if HAS_OPENPYXL else None
 ERROR_FILL    = PatternFill("solid", fgColor="FFDADA") if HAS_OPENPYXL else None
@@ -46,22 +46,26 @@ WARN_FILL     = PatternFill("solid", fgColor="FFF3CD") if HAS_OPENPYXL else None
 HEADER_FONT   = Font(bold=True, color="FFFFFF", name="Segoe UI", size=10) if HAS_OPENPYXL else None
 BOLD_FONT     = Font(bold=True, name="Segoe UI", size=10) if HAS_OPENPYXL else None
 NORMAL_FONT   = Font(name="Segoe UI", size=10) if HAS_OPENPYXL else None
-THIN_BORDER   = Border(
-    bottom=Side(style="thin", color="C5D8ED")
-) if HAS_OPENPYXL else None
+THIN_BORDER   = Border(bottom=Side(style="thin", color="C5D8ED")) if HAS_OPENPYXL else None
+
+# Excel specific number formats
+PCT_FORMAT = '0.00%'
+NUM_FORMAT = '#,##0'
 
 
 def _apply_header(ws, row=1):
-    """Style the header row of a worksheet."""
+    """Style the header row and add auto-filters."""
     for cell in ws[row]:
         cell.fill = HEADER_FILL
         cell.font = HEADER_FONT
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     ws.row_dimensions[row].height = 28
+    # Add auto-filter to the table dimensions
+    ws.auto_filter.ref = ws.dimensions
 
 
 def _apply_table(ws, start_row=2, alt_col=None, error_col=None):
-    """Apply alternating row shading and optional error highlighting."""
+    """Apply alternating row shading, borders, and optional error highlighting."""
     for i, row in enumerate(ws.iter_rows(min_row=start_row)):
         fill = ALT_ROW_FILL if i % 2 == 0 else None
         for cell in row:
@@ -70,10 +74,23 @@ def _apply_table(ws, start_row=2, alt_col=None, error_col=None):
             cell.border = THIN_BORDER
             if fill:
                 cell.fill = fill
+            
+            # Format numbers and percentages automatically
+            if isinstance(cell.value, (int, float)):
+                if 0 < cell.value < 1 and 'rate' not in str(ws.cell(row=1, column=cell.column).value).lower(): 
+                    # If it's a small decimal, treat it as a percentage unless it's a raw rate
+                    pass 
+                elif 'rate' in str(ws.cell(row=1, column=cell.column).value).lower() or '%' in str(ws.cell(row=1, column=cell.column).value):
+                    cell.number_format = PCT_FORMAT
+                    if cell.value > 1: # Adjust if percentages are 0-100 instead of 0-1
+                        cell.value = cell.value / 100
+                else:
+                    cell.number_format = NUM_FORMAT
+
         # Red fill on error-column cells that are non-blank
         if error_col is not None:
             cell = row[error_col - 1]
-            if cell.value and str(cell.value).strip():
+            if cell.value and str(cell.value).strip() and str(cell.value) != '0':
                 cell.fill = ERROR_FILL
 
 
@@ -87,7 +104,7 @@ def _autofit(ws):
                 max_len = max(max_len, len(str(cell.value or '')))
             except Exception:
                 pass
-        ws.column_dimensions[col_letter].width = min(max(max_len + 4, 10), 45)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 4, 12), 50)
 
 
 def _freeze(ws, row=2, col=1):
@@ -111,14 +128,12 @@ def _build_summary(ws, df):
     ws.title = "Summary"
     total = len(df)
 
-    # Date range
     if 'Parsed_Timestamp' in df.columns and df['Parsed_Timestamp'].notna().any():
         start_d = df['Parsed_Timestamp'].min().strftime('%d %b %Y')
         end_d   = df['Parsed_Timestamp'].max().strftime('%d %b %Y')
     else:
         start_d = end_d = 'N/A'
 
-    # Error flags
     has_err_code   = df[cfg.ERROR_CODE_COL] != '' if cfg.ERROR_CODE_COL in df.columns else pd.Series(False, index=df.index)
     has_sys_disc   = df['System Error Disconnect_Clean'] > 0
     has_err_cnt    = df['Error Count_Clean'] > 0
@@ -129,31 +144,27 @@ def _build_summary(ws, df):
     has_flow_disc  = df['Flow Disconnect_Clean'] > 0
     impacted       = (has_err_code | has_sys_disc | has_err_cnt | has_wrap_to | has_rona | has_flow_disc).sum()
 
-    # Queue-based abandon rate
     queue_entered  = df[(df['Total Queue_Seconds'] > 0) | df['Abandoned_Bool']]
     qe_count       = len(queue_entered)
     total_abandoned= int(df['Abandoned_Bool'].sum())
-    abnd_rate_q    = (total_abandoned / qe_count * 100) if qe_count > 0 else 0
+    abnd_rate_q    = (total_abandoned / qe_count) if qe_count > 0 else 0
 
-    # AHT / ASA
     aht = df[df['Total Handle_Seconds'] > 0]['Total Handle_Seconds'].mean() if 'Total Handle_Seconds' in df.columns else 0
     asa = df[df['Total Queue_Seconds']  > 0]['Total Queue_Seconds'].mean()  if 'Total Queue_Seconds'  in df.columns else 0
 
     wrapup_tos = int(has_wrap_to.sum())
     rona_c     = int(has_rona.sum())
     wrapup_base= df[df[cfg.WRAP_UP_COL] != ''].shape[0] if cfg.WRAP_UP_COL in df.columns else 0
-    wrapup_pct = (wrapup_tos / wrapup_base * 100) if wrapup_base > 0 else 0
+    wrapup_pct = (wrapup_tos / wrapup_base) if wrapup_base > 0 else 0
     avg_time_to_abandon = df.loc[df['Abandoned_Bool'], 'Time to Abandon_Seconds'].mean() if 'Time to Abandon_Seconds' in df.columns else 0
 
     rows = [
         ("Metric", "Value", "Notes"),
-        # ── Overview ──
         ("── OVERVIEW ──", "", ""),
         ("Total Interactions", total, "All records in the export"),
         ("Date Range Start", start_d, ""),
         ("Date Range End", end_d, ""),
         ("Full Export Completed", int(df['Full_Export_Completed_Bool'].sum()), ""),
-        # ── Errors ──
         ("── ERRORS & FAILURES ──", "", ""),
         ("Unique Interactions Impacted", impacted, f"{impacted/total*100:.2f}% of total"),
         ("  - System Error Disconnects", int(df['System Error Disconnect_Clean'].sum()), "Categories overlap; see note in plan"),
@@ -162,36 +173,38 @@ def _build_summary(ws, df):
         ("  - Customer Disconnects", int(df['Customer Disconnect_Clean'].sum()), ""),
         ("  - Customer Short Disconnects", int(df['Customer Short Disconnect_Clean'].sum()), ""),
         ("  - Outcome Failures", int(df['Outcome Failure_Clean'].sum()), ""),
-        ("  - Wrap-up Timeouts", wrapup_tos, f"{wrapup_pct:.2f}% of wrapup interactions"),
+        ("  - Wrap-up Timeouts", wrapup_tos, f"{wrapup_pct*100:.2f}% of wrapup interactions"),
         ("  - Agent RONA (Ring-No-Answer)", rona_c, f"{rona_c/total*100:.2f}% of total"),
         ("Total Error Count Sum (from CSV)", int(df['Error Count_Clean'].sum()), "Raw sum; one interaction can have multiple"),
-        # ── Abandonment ──
         ("── ABANDONMENT ──", "", ""),
         ("Total Abandoned", total_abandoned, ""),
-        ("Abandon Rate (vs all interactions)", f"{total_abandoned/total*100:.2f}%", ""),
-        ("Abandon Rate (queue-based)", f"{abnd_rate_q:.2f}%", f"Out of {qe_count:,} queue-entered interactions"),
+        ("Abandon Rate (vs all interactions)", total_abandoned/total if total > 0 else 0, ""),
+        ("Abandon Rate (queue-based)", abnd_rate_q, f"Out of {qe_count:,} queue-entered interactions"),
         ("Abandoned in Queue", int(df['Abandoned_in_Queue_Bool'].sum()), ""),
         ("Avg Time to Abandon", format_seconds(avg_time_to_abandon), "Abandoned interactions only"),
-        # ── Performance ──
         ("── PERFORMANCE ──", "", ""),
         ("Avg Handle Time AHT (answered only)", format_seconds(aht), "Excludes unanswered (0s) rows"),
         ("Avg Queue Wait ASA (queued only)", format_seconds(asa), "Excludes non-queued (0s) rows"),
         ("Avg IVR Duration", format_seconds(df[df['Total IVR_Seconds'] > 0]['Total IVR_Seconds'].mean()) if 'Total IVR_Seconds' in df.columns else 'N/A', ""),
         ("Avg Hold Time", format_seconds(df[df['Total Hold_Seconds'] > 0]['Total Hold_Seconds'].mean()) if 'Total Hold_Seconds' in df.columns else 'N/A', ""),
-        # ── Channel ──
         ("── CHANNEL ──", "", ""),
         ("Supervisor Barge-Ins", int(df['Barged_In_Bool'].sum()), ""),
         ("Total Transfers", int(df['Transfers_Clean'].sum()), ""),
-        ("Interactions Transferred (%)", f"{(df['Transfers_Clean'] > 0).sum()/total*100:.2f}%", ""),
+        ("Interactions Transferred (%)", (df['Transfers_Clean'] > 0).sum()/total if total > 0 else 0, ""),
     ]
 
     for r_idx, row_data in enumerate(rows, start=1):
         for c_idx, val in enumerate(row_data, start=1):
-            ws.cell(row=r_idx, column=c_idx, value=val)
+            cell = ws.cell(row=r_idx, column=c_idx, value=val)
+            # Formatting for percentage rows in summary
+            if r_idx > 1 and c_idx == 2 and isinstance(val, float) and val <= 1.0:
+                cell.number_format = PCT_FORMAT
+            elif r_idx > 1 and c_idx == 2 and isinstance(val, (int, float)):
+                cell.number_format = NUM_FORMAT
 
     _apply_header(ws, row=1)
+    ws.auto_filter.ref = None # Remove filter from summary page for aesthetics
 
-    # Bold section headers
     for r_idx, row_data in enumerate(rows, start=1):
         if str(row_data[0]).startswith("──"):
             for c_idx in range(1, 4):
@@ -222,9 +235,9 @@ def _build_errors(ws, df):
         err_df = df[df[err_col] != '']
         counts = err_df[err_col].value_counts().reset_index()
         counts.columns = ['Error Code', 'Count']
-        counts['Pct'] = counts['Count'] / total * 100
+        counts['Pct'] = counts['Count'] / total
         for _, row in counts.iterrows():
-            ws.append([row['Error Code'], int(row['Count']), round(row['Pct'], 4)])
+            ws.append([row['Error Code'], int(row['Count']), row['Pct']])
 
     _apply_table(ws, start_row=2, error_col=1)
     _autofit(ws)
@@ -243,14 +256,14 @@ def _build_daily(ws, df):
             Abandoned=('Abandoned_Bool', 'sum'),
             AHT=('Total Handle_Seconds', lambda x: x[x > 0].mean() if (x > 0).any() else 0)
         )
-        daily['Abandon_Rate'] = daily['Abandoned'] / daily['Interactions'] * 100
+        daily['Abandon_Rate'] = daily['Abandoned'] / daily['Interactions']
         for date_val, row in daily.iterrows():
             ws.append([
                 str(date_val),
                 int(row['Interactions']),
                 int(row['Errors']),
                 int(row['Abandoned']),
-                round(row['Abandon_Rate'], 2),
+                row['Abandon_Rate'],
                 format_seconds(row['AHT'])
             ])
 
@@ -293,10 +306,10 @@ def _build_queue(ws, df):
             AHT=('Total Handle_Seconds', lambda x: x[x > 0].mean() if (x > 0).any() else 0),
             ASA=('Total Queue_Seconds',  lambda x: x[x > 0].mean() if (x > 0).any() else 0)
         ).sort_values('Interactions', ascending=False)
-        q['Abnd_Rate'] = q['Abandoned'] / q['Interactions'] * 100
+        q['Abnd_Rate'] = q['Abandoned'] / q['Interactions']
         for name, row in q.iterrows():
             ws.append([name, int(row['Interactions']), int(row['Abandoned']),
-                       round(row['Abnd_Rate'], 2), int(row['Errors']),
+                       row['Abnd_Rate'], int(row['Errors']),
                        format_seconds(row['AHT']), format_seconds(row['ASA'])])
 
     _apply_table(ws, start_row=2)
@@ -366,7 +379,7 @@ def _build_ivr_outcomes(ws, df):
             counts = df[df[col_name] != ''][col_name].value_counts().head(top_n)
             for val, count in counts.items():
                 if str(val).strip():
-                    ws.append([category_name, str(val), int(count), round((count/total)*100, 2)])
+                    ws.append([category_name, str(val), int(count), count/total])
     
     append_counts("Flow Exit Reason", cfg.FLOW_EXIT_COL)
     append_counts("Flow-Out Type", cfg.FLOW_OUT_TYPE_COL)
@@ -392,7 +405,7 @@ def _build_wrapup(ws, df):
         for code, count in counts.items():
             row_fill = ERROR_FILL if 'ININ-WRAP-UP-TIMEOUT' in str(code).upper() else None
             r = ws.max_row + 1
-            ws.append([code, int(count), round(count / total * 100, 4)])
+            ws.append([code, int(count), count / total])
             if row_fill:
                 for c in range(1, 4):
                     ws.cell(row=r, column=c).fill = row_fill
@@ -471,7 +484,7 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
     _build_queue(wb.create_sheet(), df)
     _build_agent(wb.create_sheet(), df)
     _build_flow(wb.create_sheet(), df)
-    _build_ivr_outcomes(wb.create_sheet(), df) # Added the new tab here
+    _build_ivr_outcomes(wb.create_sheet(), df) 
     _build_wrapup(wb.create_sheet(), df)
     _build_raw_errors(wb.create_sheet(), df)
 
