@@ -5,15 +5,16 @@ Exports the full Genesys June interactions analysis to a formatted Excel workboo
 
 Tabs produced:
   1. Summary            – Headline KPIs
-  2. Errors             – Error Code frequency table
-  3. Daily Trend        – Day-by-day interactions / errors / abandons / AHT
-  4. Hourly Trend       – Hour-by-hour counts
-  5. Queue Performance  – Per-queue breakdown (all queues)
-  6. Agent Performance  – Per-agent breakdown (all agents)
-  7. Flow Performance   – Per-flow breakdown (all flows)
-  8. IVR & Outcomes     – Exits, Segments, and Authentication stats (NEW)
-  9. Wrap-up Codes      – Wrap-up code frequencies
- 10. Raw Error Records  – Every row with an error code or system-error disconnect
+  2. Channel Performance– Per media type breakdown (Voice, Email, WhatsApp) (NEW)
+  3. Errors             – Error Code frequency table
+  4. Daily Trend        – Day-by-day interactions / errors / abandons / AHT
+  5. Hourly Trend       – Hour-by-hour counts
+  6. Queue Performance  – Per-queue breakdown (all queues)
+  7. Agent Performance  – Per-agent breakdown (all agents)
+  8. Flow Performance   – Per-flow breakdown (all flows)
+  9. IVR & Outcomes     – Exits, Segments, and Authentication stats
+ 10. Wrap-up Codes      – Wrap-up code frequencies
+ 11. Raw Error Records  – Every row with an error code or system-error disconnect
 
 Usage:
     from exporter import export_to_excel
@@ -223,6 +224,34 @@ def _build_summary(ws, df):
     _freeze(ws)
 
 
+def _build_media_type(ws, df):
+    ws.title = "Channel Performance"
+    ws.append(["Media Type", "Interactions", "Abandoned", "Abandon Rate %",
+               "Errors", "Avg Handle Time", "Avg Queue Wait", "Avg Hold Time"])
+    _apply_header(ws)
+
+    if cfg.MEDIA_TYPE_COL in df.columns:
+        m = df.groupby(cfg.MEDIA_TYPE_COL).agg(
+            Interactions=('Abandoned_Bool', 'count'),
+            Abandoned=('Abandoned_Bool', 'sum'),
+            Errors=('Error Count_Clean', 'sum'),
+            AHT=('Total Handle_Seconds', lambda x: x[x > 0].mean() if (x > 0).any() else 0),
+            ASA=('Total Queue_Seconds',  lambda x: x[x > 0].mean() if (x > 0).any() else 0),
+            Hold=('Total Hold_Seconds',  lambda x: x[x > 0].mean() if (x > 0).any() else 0)
+        ).sort_values('Interactions', ascending=False)
+        m['Abnd_Rate'] = m['Abandoned'] / m['Interactions']
+        
+        for name, row in m.iterrows():
+            media_name = str(name).strip().title() if str(name).strip() else "Unknown"
+            ws.append([media_name, int(row['Interactions']), int(row['Abandoned']),
+                       row['Abnd_Rate'], int(row['Errors']),
+                       format_seconds(row['AHT']), format_seconds(row['ASA']), format_seconds(row['Hold'])])
+
+    _apply_table(ws, start_row=2)
+    _autofit(ws)
+    _freeze(ws)
+
+
 def _build_errors(ws, df):
     ws.title = "Errors"
     total = len(df)
@@ -326,8 +355,7 @@ def _build_agent(ws, df):
     exp = _explode(df, cfg.AGENT_COL)
     if not exp.empty:
         exp['Is_Timeout'] = exp[cfg.WRAP_UP_COL].str.contains("ININ-WRAP-UP-TIMEOUT", case=False, na=False)
-        exp['Is_RONA']    = (exp['Not Responding_Clean'] > 0) | \
-                            ((exp['Not Responding_Clean'] == 0) & (exp[cfg.USERS_NOT_RESPONDING_COL] != ''))
+        exp['Is_RONA']    = (exp['Not Responding_Clean'] > 0) |                             ((exp['Not Responding_Clean'] == 0) & (exp[cfg.USERS_NOT_RESPONDING_COL] != ''))
         a = exp.groupby('_val').agg(
             Interactions=('Abandoned_Bool', 'count'),
             Errors=('Error Count_Clean', 'sum'),
@@ -460,11 +488,6 @@ def _build_raw_errors(ws, df):
 def export_to_excel(df: pd.DataFrame, output_path: str):
     """
     Write the full analysis to a formatted Excel workbook.
-
-    Parameters
-    ----------
-    df          : Cleaned / parsed DataFrame (output of loader.load_data)
-    output_path : Path to the output .xlsx file
     """
     if not HAS_OPENPYXL:
         print("⚠️  openpyxl is not installed. Run: pip install openpyxl")
@@ -478,6 +501,9 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
     ws_summary = wb.active
     _build_summary(ws_summary, df)
 
+    # Added the Media Type breakdown here
+    _build_media_type(wb.create_sheet(), df)
+    
     _build_errors(wb.create_sheet(), df)
     _build_daily(wb.create_sheet(), df)
     _build_hourly(wb.create_sheet(), df)
@@ -494,40 +520,115 @@ def export_to_excel(df: pd.DataFrame, output_path: str):
 
 
 def append_terminal_details(xlsx_path: str, html_path: str, terminal_output: str):
-    """Add the exact runtime analysis text to the existing HTML and workbook."""
-    if not HAS_OPENPYXL:
-        return
+    """Parse raw terminal text and append it as sleek, collapsible HTML accordions."""
+    import os
+    import html
+    import re
+    
+    # 1. Write the terminal log to the Excel file
+    if HAS_OPENPYXL:
+        from openpyxl import load_workbook
+        from openpyxl.styles import Alignment
+        try:
+            wb = load_workbook(xlsx_path)
+            if "Terminal Detail" in wb.sheetnames:
+                del wb["Terminal Detail"]
+            ws = wb.create_sheet("Terminal Detail")
+            ws["A1"] = "Genesys Runtime Analysis"
+            ws["A2"] = "Exact console output from this report run"
+            ws.column_dimensions["A"].width = 120
+            for row_number, line in enumerate(terminal_output.splitlines(), start=4):
+                ws.cell(row=row_number, column=1, value=line).alignment = Alignment(wrap_text=True, vertical="top")
+            wb.save(xlsx_path)
+        except Exception as e:
+            print(f"Warning: Could not save terminal log to Excel: {e}")
 
-    wb = load_workbook(xlsx_path)
-    if "Terminal Detail" in wb.sheetnames:
-        del wb["Terminal Detail"]
-    ws = wb.create_sheet("Terminal Detail")
-    ws["A1"] = "Genesys Runtime Analysis"
-    ws["A1"].fill = HEADER_FILL
-    ws["A1"].font = HEADER_FONT
-    ws["A1"].alignment = Alignment(horizontal="left")
-    ws["A2"] = "Exact console output from this report run"
-    ws["A2"].font = NORMAL_FONT
-    ws.column_dimensions["A"].width = 120
-    for row_number, line in enumerate(terminal_output.splitlines(), start=4):
-        cell = ws.cell(row=row_number, column=1, value=line)
-        cell.font = NORMAL_FONT
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
-    ws.freeze_panes = "A4"
-    wb.save(xlsx_path)
-
+    # 2. Parse the terminal output into Collapsible HTML Accordions
     if not os.path.exists(html_path):
         return
-    with open(html_path, "r", encoding="utf-8") as report_file:
-        html_report = report_file.read()
-    detail_section = (
-        "<h2>Detailed Runtime Analysis</h2>"
-        "<p>Exact console output from this report run.</p>"
-        "<pre class=\"terminal-output\">"
-        f"{html.escape(terminal_output)}"
-        "</pre>"
-    )
+        
+    with open(html_path, "r", encoding="utf-8") as f:
+        html_report = f.read()
+
+    # Start the section container
+    html_blocks = [
+        "<div class='section-title' style='margin-top:4rem;'>Comprehensive System Report (Click to Expand)</div>",
+        "<div class='accordion-container' style='display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem;'>"
+    ]
+    
+    lines = terminal_output.split('\n')
+    in_table = False
+    in_section = False
+    table_html = ""
+    
+    for line in lines:
+        line_str = line.strip()
+        
+        # Skip raw ASCII borders
+        if not line_str or set(line_str) == {'-'} or set(line_str) == {'='}:
+            continue
+            
+        # Detect numbered section headers (e.g., "1. DATA INTEGRITY")
+        if re.match(r'^\d+\.\s+', line_str):
+            if in_table:
+                html_blocks.append(table_html + "</tbody></table></div>")
+                in_table = False
+                
+            # Close the previous accordion if one is open
+            if in_section:
+                html_blocks.append("</div></details>")
+                
+            # Start a new collapsible accordion
+            html_blocks.append(f"""
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>{html.escape(line_str)}</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            """)
+            in_section = True
+            continue
+            
+        # Detect ASCII tables and convert to proper HTML tables
+        if '|' in line:
+            if not in_table:
+                in_table = True
+                headers = [h.strip() for h in line.split('|') if h.strip()]
+                th_html = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+                table_html = f"<div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'>{th_html}</tr></thead><tbody>"
+            else:
+                cells = [c.strip() for c in line.split('|') if c.strip()]
+                if cells:
+                    td_html = "".join(f"<td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>{html.escape(c)}</td>" for c in cells)
+                    table_html += f"<tr style='background: var(--surface);'>{td_html}</tr>"
+            continue
+            
+        # Close HTML table if the ASCII table ends
+        if in_table:
+            html_blocks.append(table_html + "</tbody></table></div>")
+            in_table = False
+            
+        # Format bullet points and metric lists
+        if line.startswith('   -') or line.startswith('   └') or line.startswith(' 🚨') or line.startswith(' 🚪') or line.startswith(' 📴'):
+            html_blocks.append(f"<div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>{html.escape(line_str)}</div>")
+        else:
+            # Regular text paragraphs
+            html_blocks.append(f"<p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>{html.escape(line_str)}</p>")
+            
+    # Cleanup any open blocks at the end of the loop
+    if in_table:
+        html_blocks.append(table_html + "</tbody></table></div>")
+    if in_section:
+        html_blocks.append("</div></details>")
+        
+    html_blocks.append("</div>") # Close accordion container
+    
+    parsed_html = "".join(html_blocks)
+    
+    # Inject the HTML right before the end of the document
     if "</body>" in html_report:
-        html_report = html_report.replace("</body>", detail_section + "</body>", 1)
-    with open(html_path, "w", encoding="utf-8") as report_file:
-        report_file.write(html_report)
+        html_report = html_report.replace("</body>", parsed_html + "\n</body>", 1)
+        
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_report)

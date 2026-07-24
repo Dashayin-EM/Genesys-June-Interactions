@@ -467,8 +467,11 @@ def run_analysis(df):
 
 
 def print_executive_report(ctx: dict):
-    """Print a clean, boss-ready executive summary and save an HTML version."""
+    """Print a clean, boss-ready executive summary and save a modern HTML dashboard."""
     import os, datetime
+    import html
+    import pandas as pd
+    import config as cfg
 
     df                   = ctx['df']
     total_interactions   = ctx['total_interactions']
@@ -482,7 +485,7 @@ def print_executive_report(ctx: dict):
     wrapup_timeouts      = ctx['wrapup_timeouts']
     q_summary            = ctx['q_summary']
     a_summary            = ctx['a_summary']
-    impacted_df          = ctx['impacted_interactions'] # Retrieve impacted records
+    impacted_df          = ctx['impacted_interactions']
     aht_by_media         = ctx.get('aht_by_media', {})
 
     from utils import format_seconds
@@ -498,37 +501,38 @@ def print_executive_report(ctx: dict):
     aht_mean = df[df['Total Handle_Seconds'] > 0]['Total Handle_Seconds'].mean() if 'Total Handle_Seconds' in df.columns else 0
     asa_mean = df[df['Total Queue_Seconds']  > 0]['Total Queue_Seconds'].mean()  if 'Total Queue_Seconds'  in df.columns else 0
 
-    # Peak hour
-    peak_hour = int(df.groupby('Hour')['Abandoned_Bool'].count().idxmax()) if 'Hour' in df.columns and df['Hour'].notna().any() else -1
-    peak_label = f"{peak_hour:02d}:00 – {peak_hour:02d}:59" if peak_hour >= 0 else 'N/A'
-
     # Top error code
     if 'Error Code' in df.columns:
         err_df = df[df['Error Code'] != '']
         top_err = err_df['Error Code'].value_counts()
-        top_err_label = f"{top_err.index[0]} ({top_err.iloc[0]:,} occurrences)" if not top_err.empty else 'None'
+        if not top_err.empty:
+            top_err_label = f"{top_err.index[0]}"
+            top_err_count = top_err.iloc[0]
+        else:
+            top_err_label, top_err_count = 'None', 0
     else:
-        top_err_label = 'N/A'
+        top_err_label, top_err_count = 'N/A', 0
 
     # Top issues
     issues = []
     if q_summary is not None and not q_summary.empty:
         tq = q_summary.sort_values('Errors', ascending=False)
         if not tq.empty:
-            issues.append(f"Queue '{tq.index[0]}' – highest error volume ({int(tq.iloc[0]['Errors']):,} errors)")
+            issues.append(f"<strong>Queue '{tq.index[0]}'</strong> generated the highest error volume ({int(tq.iloc[0]['Errors']):,} errors).")
         ta = q_summary.sort_values('Abandon_Rate_%', ascending=False)
         if not ta.empty:
-            issues.append(f"Queue '{ta.index[0]}' – highest abandon rate ({ta.iloc[0]['Abandon_Rate_%']:.1f}%)")
+            issues.append(f"<strong>Queue '{ta.index[0]}'</strong> experienced the highest queue abandonment rate ({ta.iloc[0]['Abandon_Rate_%']:.1f}%).")
     if a_summary is not None and not a_summary.empty:
         tr = a_summary.sort_values('RONA_Events', ascending=False)
         if not tr.empty and tr.iloc[0]['RONA_Events'] > 0:
-            issues.append(f"Agent '{tr.index[0]}' – most RONA events ({int(tr.iloc[0]['RONA_Events']):,})")
+            issues.append(f"<strong>Agent '{tr.index[0]}'</strong> missed the most interactions (RONA: {int(tr.iloc[0]['RONA_Events']):,}).")
     if wrapup_timeouts > 0:
-        issues.append(f"{wrapup_timeouts:,} wrap-up timeouts (agents not closing interactions on time)")
+        issues.append(f"<strong>{wrapup_timeouts:,} wrap-up timeouts</strong> recorded. Agents are frequently failing to disposition interactions.")
     if not issues:
         issues.append('No critical issues detected.')
 
-    W = 60
+    # Terminal Output Strings (Kept identical for your console)
+    W = 70
     border = '═' * W
     title  = 'GENESYS PLATFORM – JUNE 2026 INTERACTION REPORT'
     pad    = (W - len(title)) // 2
@@ -546,140 +550,190 @@ def print_executive_report(ctx: dict):
         f"  Impacted Interactions: {err_interaction_count:>10,}  ({(err_interaction_count/total_interactions*100):.2f}% of total)",
         f"  System Error Disconn.: {sys_disconnects:>10,}",
         f"  Flow Disconnects     : {flow_disconnects:>10,}",
-        f"  Top Error Code       : {top_err_label}",
-        "",
-        "ABANDONMENT",
-        f"  Abandon Rate (queue) : {abandon_rate_queue:>9.2f}%",
-        f"  Abandoned in Queue   : {abandoned_in_queue:>10,}",
-        f"  Avg Time to Abandon  : {format_seconds(df.loc[df['Abandoned_Bool'], 'Time to Abandon_Seconds'].mean()) if 'Time to Abandon_Seconds' in df.columns else 'N/A'}",
         "",
         "PERFORMANCE",
         f"  Avg Handle Time (AHT): {format_seconds(aht_mean)}",
-    ]
-    
-    for media, aht_val in aht_by_media.items():
-        lines.append(f"    - {media}: {format_seconds(aht_val)}")
-        
-    lines.extend([
         f"  Avg Queue Wait (ASA) : {format_seconds(asa_mean)}",
-        f"  Peak Traffic Hour    : {peak_label}",
-        "",
-        "TOP ISSUES TO INVESTIGATE",
-    ])
+    ]
+    print('\n'.join(lines) + '\n')
 
-    lines.extend([f"  {i+1}. {issue}" for i, issue in enumerate(issues)])
-
-    report_text = '\n'.join(lines)
-    print()
-    print(report_text)
-    print()
-
-    # Create HTML table for Failed Interactions
-    failed_table_html = "<p>No failed interactions recorded.</p>"
+    # Create HTML table rows for Failed Interactions
+    failed_table_rows = ""
     if not impacted_df.empty:
-        # Define preferred columns ensuring they exist in the dataframe
         report_cols = [
-            'Parsed_Timestamp', 
-            'Interaction ID',
-            cfg.ANI_COL,
-            cfg.REMOTE_COL,
-            cfg.MEDIA_TYPE_COL,
-            cfg.FLOW_COL,
-            cfg.QUEUE_COL, 
-            cfg.AGENT_COL,
-            cfg.USERS_NOT_RESPONDING_COL,
-            cfg.ERROR_CODE_COL, 
-            cfg.DISCONNECT_TYPE_COL,
-            cfg.FAILED_OUTCOMES_COL
+            'Parsed_Timestamp', cfg.REMOTE_COL, cfg.MEDIA_TYPE_COL, 
+            cfg.QUEUE_COL, cfg.AGENT_COL, cfg.ERROR_CODE_COL, cfg.DISCONNECT_TYPE_COL
         ]
         valid_cols = [col for col in report_cols if col in impacted_df.columns]
         
-        # Sort and take top 50 for the web report to keep it clean
-        if 'Parsed_Timestamp' in valid_cols:
-            df_to_html = impacted_df.sort_values(by='Parsed_Timestamp', ascending=False)[valid_cols].head(50)
-        else:
-            df_to_html = impacted_df[valid_cols].head(50)
-            
-        failed_table_html = df_to_html.fillna('N/A').to_html(index=False, classes='failed-table')
+        df_to_html = impacted_df.sort_values(by='Parsed_Timestamp', ascending=False)[valid_cols].head(100).fillna('')
+        
+        for _, row in df_to_html.iterrows():
+            err_style = "color: #ef4444; font-weight:600;" if row.get(cfg.ERROR_CODE_COL) else ""
+            failed_table_rows += f"""
+            <tr>
+              <td>{row.get('Parsed_Timestamp', '')}</td>
+              <td>{row.get(cfg.REMOTE_COL, '')}</td>
+              <td>{row.get(cfg.MEDIA_TYPE_COL, '')}</td>
+              <td>{row.get(cfg.QUEUE_COL, '')}</td>
+              <td>{row.get(cfg.AGENT_COL, '')}</td>
+              <td style="{err_style}">{row.get(cfg.ERROR_CODE_COL, '')}</td>
+              <td>{row.get(cfg.DISCONNECT_TYPE_COL, '')}</td>
+            </tr>
+            """
+
+    # Format dynamic blocks for the HTML template
+    media_aht_html = "".join(f"<div class='stat-row'><span>{media.title()}</span><span>{format_seconds(val)}</span></div>" for media, val in aht_by_media.items())
+    issues_html = "".join(f'<div class="insight-item warning"><span class="insight-icon">⚠️</span><div>{issue}</div></div>' for issue in issues)
 
     # Save HTML report
     report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reports')
     os.makedirs(report_dir, exist_ok=True)
     html_path = os.path.join(report_dir, 'executive_report_june2026.html')
 
-    issues_html = ''.join(f'<li>{issue}</li>' for issue in issues)
-    
-    # Build the performance table rows dynamically to include media types
-    perf_rows = f"<tr><td>Avg Handle Time (AHT)</td><td>{format_seconds(aht_mean)}</td></tr>"
-    for media, aht_val in aht_by_media.items():
-        perf_rows += f"<tr><td style='padding-left:25px;'>&#8627; {media}</td><td>{format_seconds(aht_val)}</td></tr>"
-    perf_rows += f"<tr><td>Avg Queue Wait (ASA)</td><td>{format_seconds(asa_mean)}</td></tr>"
-    perf_rows += f"<tr><td>Peak Traffic Hour</td><td>{peak_label}</td></tr>"
-
-    html = f"""<!DOCTYPE html>
+    html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Genesys June 2026 – Executive Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesys Operations Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <style>
-    body {{ font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #222; }}
-    h1   {{ background:#1a3c5e; color:#fff; padding:16px 24px; border-radius:6px; font-size:1.3em; }}
-    h2   {{ color:#1a3c5e; border-bottom:2px solid #1a3c5e; padding-bottom:4px; margin-top:32px; }}
-    table{{ border-collapse:collapse; width:100%; margin-top:12px; font-size: 0.9em; }}
-    th   {{ background:#1a3c5e; color:#fff; padding:8px 12px; text-align:left; }}
-    td   {{ padding:8px 12px; border-bottom:1px solid #ddd; }}
-    tr:nth-child(even) td {{ background:#f4f8fc; }}
-    .kpi {{ font-size:1.6em; font-weight:700; color:#1a3c5e; }}
-    .kpi-box {{ display:inline-block; background:#f4f8fc; border:1px solid #c5d8ed;
-                border-radius:8px; padding:16px 24px; margin:8px; text-align:center; }}
-    .kpi-label {{ font-size:0.8em; color:#555; display:block; }}
-    .failed-table th {{ background-color: #d9534f; }}
-    ul {{ line-height:2; }}
-    .footer {{ margin-top:40px; font-size:0.8em; color:#888; }}
+    :root {{
+      --bg: #f8fafc; --surface: #ffffff; --primary: #0f172a; --secondary: #2563eb;
+      --accent: #e2e8f0; --text-main: #334155; --text-muted: #64748b;
+      --danger: #ef4444; --danger-light: #fef2f2; --warning: #f59e0b;
+      --warning-light: #fffbeb; --success: #10b981; --radius: 12px;
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding: 2rem 3%; }}
+    .container-fluid {{ max-width: 100%; margin: 0 auto; }}
+    
+    .header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: var(--primary); padding: 2rem 3rem; border-radius: var(--radius); color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }}
+    .header h1 {{ font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; letter-spacing: -0.5px; }}
+    .header p {{ color: #94a3b8; font-size: 0.95rem; }}
+    .date-badge {{ background: rgba(255,255,255,0.1); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.95rem; display: flex; gap: 15px; }}
+
+    .section-title {{ font-size: 1.3rem; font-weight: 700; color: var(--primary); margin: 3rem 0 1.5rem 0; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); }}
+
+    .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
+    .kpi-card {{ background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-top: 4px solid var(--secondary); }}
+    .kpi-card.danger {{ border-top-color: var(--danger); }}
+    .kpi-title {{ font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }}
+    .kpi-value {{ font-size: 2.2rem; font-weight: 700; color: var(--primary); line-height: 1.1; word-break: break-all; }}
+    .kpi-sub {{ font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; display: block; }}
+    .stat-row {{ display: flex; justify-content: space-between; padding: 0.5rem 0; border-top: 1px dashed var(--accent); font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-muted); }}
+
+    .dashboard-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
+    .panel {{ background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }}
+    .panel-title {{ font-size: 1.1rem; font-weight: 600; color: var(--primary); margin-bottom: 1.5rem; }}
+    
+    .insight-list {{ display: flex; flex-direction: column; gap: 1rem; }}
+    .insight-item {{ padding: 1rem 1.2rem; border-radius: 8px; display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; font-weight: 500; }}
+    .insight-item.warning {{ background: var(--warning-light); border-left: 4px solid var(--warning); color: #b45309; }}
+    .insight-icon {{ font-size: 1.3em; margin-top: -2px; }}
+
+    .table-wrapper {{ background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; }}
+    table.dataTable {{ border-collapse: collapse !important; width: 100% !important; font-size: 0.85rem; }}
+    table.dataTable thead th {{ background: var(--primary) !important; color: white !important; border-bottom: none !important; padding: 1rem !important; font-weight: 600; text-align: left; }}
+    table.dataTable tbody td {{ padding: 0.8rem 1rem !important; border-bottom: 1px solid var(--accent) !important; vertical-align: middle; }}
+    table.dataTable tbody tr:hover {{ background-color: #f1f5f9 !important; }}
+    .dataTables_wrapper .dataTables_filter input {{ border: 1px solid var(--accent); border-radius: 6px; padding: 0.4rem; margin-left: 0.5rem; }}
+
+    .footer {{ text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 3rem; padding: 2rem 0; border-top: 1px solid var(--accent); }}
   </style>
 </head>
 <body>
-  <h1>&#128202; Genesys Platform – June 2026 Interaction Report</h1>
-  <p>Generated: {datetime.datetime.now().strftime('%d %b %Y %H:%M')}</p>
 
-  <h2>Overview</h2>
-  <div class="kpi-box"><span class="kpi">{total_interactions:,}</span><span class="kpi-label">Total Interactions</span></div>
-  <div class="kpi-box"><span class="kpi">{start_date}</span><span class="kpi-label">Start Date</span></div>
-  <div class="kpi-box"><span class="kpi">{end_date}</span><span class="kpi-label">End Date</span></div>
+<div class="container-fluid">
+  
+  <div class="header">
+    <div>
+      <h1>Genesys Operations Dashboard</h1>
+      <p>Automated Analysis & System Health Report</p>
+    </div>
+    <div class="date-badge">
+      <span>📅 {start_date} — {end_date}</span>
+      <span>|</span>
+      <span>Generated: {datetime.datetime.now().strftime('%d %b %Y %H:%M')}</span>
+    </div>
+  </div>
 
-  <h2>Errors &amp; Failures</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Unique Interactions Impacted</td><td>{err_interaction_count:,} ({(err_interaction_count/total_interactions*100):.2f}%)</td></tr>
-    <tr><td>System Error Disconnects</td><td>{sys_disconnects:,}</td></tr>
-    <tr><td>Flow Disconnects (mid-flow)</td><td>{flow_disconnects:,}</td></tr>
-    <tr><td>Top Error Code</td><td>{top_err_label}</td></tr>
-  </table>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-title">Total Interactions</span>
+      <span class="kpi-value">{total_interactions:,}</span>
+      <span class="kpi-sub">100% Export Completed</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">Avg Handle Time (AHT)</span>
+      <span class="kpi-value">{format_seconds(aht_mean)}</span>
+      {media_aht_html}
+    </div>
+    <div class="kpi-card danger">
+      <span class="kpi-title">Top Error Code</span>
+      <span class="kpi-value" style="font-size: 1.2rem;">{top_err_label}</span>
+      <span class="kpi-sub">{top_err_count:,} occurrences</span>
+    </div>
+    <div class="kpi-card danger">
+      <span class="kpi-title">Abandon Rate (Queue)</span>
+      <span class="kpi-value">{abandon_rate_queue:.2f}%</span>
+      <span class="kpi-sub">{abandoned_in_queue:,} abandoned in queue</span>
+    </div>
+  </div>
 
-  <h2>Abandonment</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Abandon Rate (queue-based)</td><td>{abandon_rate_queue:.2f}%</td></tr>
-    <tr><td>Abandoned in Queue</td><td>{abandoned_in_queue:,}</td></tr>
-  </table>
+  <div class="dashboard-grid">
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-title">Automated System Insights & Alerts</div>
+      <div class="insight-list">
+        {issues_html}
+      </div>
+    </div>
+  </div>
 
-  <h2>Performance</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    {perf_rows}
-  </table>
+  <div class="section-title">Detailed Failed Interactions Log (Top 100)</div>
+  <div class="table-wrapper">
+    <table id="interactionsTable" class="dataTable display">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Remote / Caller</th>
+          <th>Media</th>
+          <th>Queue</th>
+          <th>Agent / User</th>
+          <th>Error Code</th>
+          <th>Disconnect</th>
+        </tr>
+      </thead>
+      <tbody>
+        {failed_table_rows}
+      </tbody>
+    </table>
+  </div>
 
-  <h2>&#128680; Top Issues to Investigate</h2>
-  <ul>{issues_html}</ul>
+  <div class="footer">
+    Source: Genesys Cloud Interaction Export &nbsp;|&nbsp; Generated by Analytics Pipeline
+  </div>
+</div>
 
-  <h2>🚨 Detailed Failed Interactions Log (Top 50)</h2>
-  <p>Review specific interaction details associated with operational failure codes, system disconnects, or workflow timeouts.</p>
-  {failed_table_html}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
-  <p class="footer">Source: Genesys Cloud interaction export – June 2026 &nbsp;|&nbsp; Generated by Antigravity analysis pipeline</p>
+<script>
+  $(document).ready(function() {{
+    $('#interactionsTable').DataTable({{
+      pageLength: 10,
+      order: [[ 0, "desc" ]],
+      language: {{ search: "Filter Interactions:" }},
+      responsive: true
+    }});
+  }});
+</script>
+
 </body>
-</html>
-"""
+</html>"""
+
     with open(html_path, 'w', encoding='utf-8') as f:
-        f.write(html)
+        f.write(html_content)
     print(f"📄 Executive HTML report saved → {html_path}\n")

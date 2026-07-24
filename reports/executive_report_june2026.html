@@ -2,1070 +2,1331 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Genesys June 2026 – Executive Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesys Operations Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 40px auto; color: #222; }
-    h1   { background:#1a3c5e; color:#fff; padding:16px 24px; border-radius:6px; font-size:1.3em; }
-    h2   { color:#1a3c5e; border-bottom:2px solid #1a3c5e; padding-bottom:4px; margin-top:32px; }
-    table{ border-collapse:collapse; width:100%; margin-top:12px; font-size: 0.9em; }
-    th   { background:#1a3c5e; color:#fff; padding:8px 12px; text-align:left; }
-    td   { padding:8px 12px; border-bottom:1px solid #ddd; }
-    tr:nth-child(even) td { background:#f4f8fc; }
-    .kpi { font-size:1.6em; font-weight:700; color:#1a3c5e; }
-    .kpi-box { display:inline-block; background:#f4f8fc; border:1px solid #c5d8ed;
-                border-radius:8px; padding:16px 24px; margin:8px; text-align:center; }
-    .kpi-label { font-size:0.8em; color:#555; display:block; }
-    .failed-table th { background-color: #d9534f; }
-    ul { line-height:2; }
-    .footer { margin-top:40px; font-size:0.8em; color:#888; }
+    :root {
+      --bg: #f8fafc; --surface: #ffffff; --primary: #0f172a; --secondary: #2563eb;
+      --accent: #e2e8f0; --text-main: #334155; --text-muted: #64748b;
+      --danger: #ef4444; --danger-light: #fef2f2; --warning: #f59e0b;
+      --warning-light: #fffbeb; --success: #10b981; --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding: 2rem 3%; }
+    .container-fluid { max-width: 100%; margin: 0 auto; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: var(--primary); padding: 2rem 3rem; border-radius: var(--radius); color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .header h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
+    .header p { color: #94a3b8; font-size: 0.95rem; }
+    .date-badge { background: rgba(255,255,255,0.1); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.95rem; display: flex; gap: 15px; }
+
+    .section-title { font-size: 1.3rem; font-weight: 700; color: var(--primary); margin: 3rem 0 1.5rem 0; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .kpi-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-top: 4px solid var(--secondary); }
+    .kpi-card.danger { border-top-color: var(--danger); }
+    .kpi-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }
+    .kpi-value { font-size: 2.2rem; font-weight: 700; color: var(--primary); line-height: 1.1; word-break: break-all; }
+    .kpi-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; display: block; }
+    .stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-top: 1px dashed var(--accent); font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-muted); }
+
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .panel { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .panel-title { font-size: 1.1rem; font-weight: 600; color: var(--primary); margin-bottom: 1.5rem; }
+    
+    .insight-list { display: flex; flex-direction: column; gap: 1rem; }
+    .insight-item { padding: 1rem 1.2rem; border-radius: 8px; display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; font-weight: 500; }
+    .insight-item.warning { background: var(--warning-light); border-left: 4px solid var(--warning); color: #b45309; }
+    .insight-icon { font-size: 1.3em; margin-top: -2px; }
+
+    .table-wrapper { background: var(--surface); padding: 1.5rem; border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; }
+    table.dataTable { border-collapse: collapse !important; width: 100% !important; font-size: 0.85rem; }
+    table.dataTable thead th { background: var(--primary) !important; color: white !important; border-bottom: none !important; padding: 1rem !important; font-weight: 600; text-align: left; }
+    table.dataTable tbody td { padding: 0.8rem 1rem !important; border-bottom: 1px solid var(--accent) !important; vertical-align: middle; }
+    table.dataTable tbody tr:hover { background-color: #f1f5f9 !important; }
+    .dataTables_wrapper .dataTables_filter input { border: 1px solid var(--accent); border-radius: 6px; padding: 0.4rem; margin-left: 0.5rem; }
+
+    .footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 3rem; padding: 2rem 0; border-top: 1px solid var(--accent); }
   </style>
 </head>
 <body>
-  <h1>&#128202; Genesys Platform – June 2026 Interaction Report</h1>
-  <p>Generated: 24 Jul 2026 07:27</p>
 
-  <h2>Overview</h2>
-  <div class="kpi-box"><span class="kpi">34,441</span><span class="kpi-label">Total Interactions</span></div>
-  <div class="kpi-box"><span class="kpi">31 May 2026</span><span class="kpi-label">Start Date</span></div>
-  <div class="kpi-box"><span class="kpi">30 Jun 2026</span><span class="kpi-label">End Date</span></div>
+<div class="container-fluid">
+  
+  <div class="header">
+    <div>
+      <h1>Genesys Operations Dashboard</h1>
+      <p>Automated Analysis & System Health Report</p>
+    </div>
+    <div class="date-badge">
+      <span>📅 31 May 2026 — 30 Jun 2026</span>
+      <span>|</span>
+      <span>Generated: 24 Jul 2026 12:45</span>
+    </div>
+  </div>
 
-  <h2>Errors &amp; Failures</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Unique Interactions Impacted</td><td>6,804 (19.76%)</td></tr>
-    <tr><td>System Error Disconnects</td><td>4</td></tr>
-    <tr><td>Flow Disconnects (mid-flow)</td><td>40</td></tr>
-    <tr><td>Top Error Code</td><td>error.ininedgecontrol.session.inactive (647 occurrences)</td></tr>
-  </table>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-title">Total Interactions</span>
+      <span class="kpi-value">34,441</span>
+      <span class="kpi-sub">100% Export Completed</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">Avg Handle Time (AHT)</span>
+      <span class="kpi-value">01:29:19</span>
+      <div class='stat-row'><span>Callback</span><span>00:19:39</span></div><div class='stat-row'><span>Email</span><span>04:05:54</span></div><div class='stat-row'><span>Message</span><span>04:57:27</span></div><div class='stat-row'><span>Voice</span><span>00:03:35</span></div>
+    </div>
+    <div class="kpi-card danger">
+      <span class="kpi-title">Top Error Code</span>
+      <span class="kpi-value" style="font-size: 1.2rem;">error.ininedgecontrol.session.inactive</span>
+      <span class="kpi-sub">647 occurrences</span>
+    </div>
+    <div class="kpi-card danger">
+      <span class="kpi-title">Abandon Rate (Queue)</span>
+      <span class="kpi-value">2.04%</span>
+      <span class="kpi-sub">418 abandoned in queue</span>
+    </div>
+  </div>
 
-  <h2>Abandonment</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Abandon Rate (queue-based)</td><td>2.04%</td></tr>
-    <tr><td>Abandoned in Queue</td><td>418</td></tr>
-  </table>
+  <div class="dashboard-grid">
+    <div class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-title">Automated System Insights & Alerts</div>
+      <div class="insight-list">
+        <div class="insight-item warning"><span class="insight-icon">⚠️</span><div><strong>Queue 'Customer Support Voice'</strong> generated the highest error volume (696 errors).</div></div><div class="insight-item warning"><span class="insight-icon">⚠️</span><div><strong>Queue 'Debtors Voice'</strong> experienced the highest queue abandonment rate (3.9%).</div></div><div class="insight-item warning"><span class="insight-icon">⚠️</span><div><strong>Agent 'Gareth Lane'</strong> missed the most interactions (RONA: 162).</div></div><div class="insight-item warning"><span class="insight-icon">⚠️</span><div><strong>4,796 wrap-up timeouts</strong> recorded. Agents are frequently failing to disposition interactions.</div></div>
+      </div>
+    </div>
+  </div>
 
-  <h2>Performance</h2>
-  <table>
-    <tr><th>Metric</th><th>Value</th></tr>
-    <tr><td>Avg Handle Time (AHT)</td><td>01:29:19</td></tr><tr><td style='padding-left:25px;'>&#8627; callback</td><td>00:19:39</td></tr><tr><td style='padding-left:25px;'>&#8627; email</td><td>04:05:54</td></tr><tr><td style='padding-left:25px;'>&#8627; message</td><td>04:57:27</td></tr><tr><td style='padding-left:25px;'>&#8627; voice</td><td>00:03:35</td></tr><tr><td>Avg Queue Wait (ASA)</td><td>00:50:38</td></tr><tr><td>Peak Traffic Hour</td><td>10:00 – 10:59</td></tr>
-  </table>
+  <div class="section-title">Detailed Failed Interactions Log (Top 100)</div>
+  <div class="table-wrapper">
+    <table id="interactionsTable" class="dataTable display">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Remote / Caller</th>
+          <th>Media</th>
+          <th>Queue</th>
+          <th>Agent / User</th>
+          <th>Error Code</th>
+          <th>Disconnect</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+            <tr>
+              <td>2026-06-30 19:51:00</td>
+              <td>Sonelle Slabbert</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Njongozethu Sithole</td>
+              <td style="color: #ef4444; font-weight:600;">email.error.integration.host</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 19:39:00</td>
+              <td>Taka</td>
+              <td>message</td>
+              <td>Customer Support Whatsapp</td>
+              <td>Dale Son; Laura Coutts</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:52:00</td>
+              <td>Ross Beukes</td>
+              <td>email</td>
+              <td>Exports Email</td>
+              <td>Laura Coutts; Sharon Phake</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:41:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice; Reception Voice</td>
+              <td>Chanela Nel</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:34:00</td>
+              <td>Wynberg, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Tumelo Seipei; Lucrecia Cameron</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:22:00</td>
+              <td>John Goncalves</td>
+              <td>voice</td>
+              <td></td>
+              <td>John Goncalves</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.dialplan.notFound</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:18:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kriss Vermeulen</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:17:00</td>
+              <td>+27834489711</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kriss Vermeulen</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:16:00</td>
+              <td>John Goncalves</td>
+              <td>voice</td>
+              <td></td>
+              <td>John Goncalves</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.dialplan.notFound</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:14:00</td>
+              <td>+27835164808</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mark Thaver</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:14:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Reception Voice</td>
+              <td>Chanela Nel; Ian Runnalls</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 16:05:00</td>
+              <td>Pinetown, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mark Thaver</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:39:00</td>
+              <td>+27828239288</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:38:00</td>
+              <td>+27112342404</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:27:00</td>
+              <td>sip:EMCPT025_1@192.168.23.252</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble; Njongozethu Sithole</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:23:00</td>
+              <td>+27413657515</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Wayne Killian; Roland Meyer</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:17:00</td>
+              <td>sip:EMORM025_1@10.3.1.252</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Gareth Lane; Kim Ladeira</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:17:00</td>
+              <td>Stellenbosch, South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:17:00</td>
+              <td>Stellenbosch, South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:17:00</td>
+              <td>Stellenbosch, South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:13:00</td>
+              <td>Wynberg, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:09:00</td>
+              <td>+27834489711</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Tandile Ntiyantiya; Kriss Vermeulen</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:04:00</td>
+              <td>Mema Gani</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Gareth Lane; Bongiwe Mkupa; Abdullah Maal; Matthew Noble</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:04:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mbalenhle Ndlovu</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:02:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:01:00</td>
+              <td>+27420540151</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:01:00</td>
+              <td>+27420540151</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:01:00</td>
+              <td>+27420540151</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 15:01:00</td>
+              <td>Cape Town, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:59:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Botshelo Maringa</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:59:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Tandile Ntiyantiya</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:59:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:59:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:57:00</td>
+              <td>Vredenburg, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:57:00</td>
+              <td>Kempton Park, South Africa</td>
+              <td>voice</td>
+              <td>Reception Voice</td>
+              <td>Chanela Nel; Lucrecia Cameron</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:57:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Botshelo Maringa</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:49:00</td>
+              <td>'Confirm your request for' via Info EM</td>
+              <td>email</td>
+              <td>Spam Queue</td>
+              <td>Lucrecia Cameron</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:49:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mark Thaver</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:46:00</td>
+              <td>Leighcia de Lange - Hlela Projects</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Dale Son; Cecilia Pila; Lynn Kanengoni</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:43:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mbali Dlamini</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:42:00</td>
+              <td>'Creditors (TechniCool)' via sales</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Bongiwe Mkupa; Nhluvuko Khosa</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:36:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mark Thaver</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:35:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Sibusiso Sibambo</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:34:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Botshelo Maringa</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:33:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Botshelo Maringa</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:32:00</td>
+              <td>Simon'S Town, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kishen Singh</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:31:00</td>
+              <td>+27118860720</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mbalenhle Ndlovu</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:28:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Tumelo Seipei</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:26:00</td>
+              <td>Pietersburg, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kim Ladeira; Mxo Shabalala</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:26:00</td>
+              <td>anonymous</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole; Matthew Noble</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:25:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Zakes Mabonda</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:22:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Sizwe Nkosi</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:20:00</td>
+              <td>Pieter Janse Van Rensburg</td>
+              <td>voice</td>
+              <td></td>
+              <td>Pieter Janse Van Rensburg; Marius Duvenhage</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.webrtc.endpoint.disconnect.dtlsPeerDisconnect</td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:20:00</td>
+              <td>Dylan</td>
+              <td>message</td>
+              <td>Customer Support Whatsapp</td>
+              <td>Dale Son; Botshelo Maringa</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:19:00</td>
+              <td>LarkAgent Global Trade</td>
+              <td>email</td>
+              <td>Spam Queue</td>
+              <td>Lucrecia Cameron</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:18:00</td>
+              <td>'Delia Roodt' via sales</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Matthew Noble; Dale Son</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:11:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Technical Voice</td>
+              <td>Nikhil Harrilall</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:10:00</td>
+              <td>Germiston, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kim Ladeira</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:08:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:03:00</td>
+              <td>sip:EMPE006_1@192.168.49.252:8060</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Dispatch PE; Mark Thaver; Bethuel Dludla</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:02:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mbali Dlamini</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 14:01:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Zakes Mabonda; Siyabulela Jobodwana</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:46:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kriss Vermeulen; Kishen Singh</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:37:00</td>
+              <td>Connal Winter</td>
+              <td>email</td>
+              <td>Info Email; Customer Support Email</td>
+              <td>Tharusha Sewbachane; Katlego Pitjeng; Nhluvuko Khosa; Tumelo Seipei; Tandile Ntiyantiya; Lynn Kanengoni; Wayne Arendse</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:36:00</td>
+              <td>+27343154150</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole; Bryan Groenewald</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:35:00</td>
+              <td>Simon'S Town, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:30:00</td>
+              <td>Strand, South Africa</td>
+              <td>voice</td>
+              <td>Reception Voice</td>
+              <td>Chanela Nel; Ziyaad Suliman</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:29:00</td>
+              <td>'Eniswa Kandzi' via sales</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Tandile Ntiyantiya; Matthew Noble</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:27:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td>Pieter Janse Van Rensburg</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.webrtc.endpoint.disconnect.dtlsPeerDisconnect</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:24:00</td>
+              <td>+27828033700</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Tandile Ntiyantiya</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:21:00</td>
+              <td>Durban, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Mark Thaver; Kishen Singh</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:19:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Technical Voice</td>
+              <td>Nikhil Harrilall</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:16:00</td>
+              <td>Laura Coutts</td>
+              <td>email</td>
+              <td>Customer Support Email; Exports Email</td>
+              <td>Dale Son; Laura Coutts; Sharon Phake</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:04:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble; Zakes Mabonda</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 13:00:00</td>
+              <td>Goodwood, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kriss Vermeulen</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:57:00</td>
+              <td>'Dorman Renewable Energy Projects' via sales</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Gareth Lane; Wayne Arendse</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:57:00</td>
+              <td>Cape Town, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:57:00</td>
+              <td>Germiston, South Africa</td>
+              <td>voice</td>
+              <td>Reception Voice</td>
+              <td>Chanela Nel; Liora Bricker</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:56:00</td>
+              <td>*r</td>
+              <td>voice</td>
+              <td></td>
+              <td>Bethuel Dludla</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noProceeding</td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:55:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kriss Vermeulen; Deon Paulsen</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:52:00</td>
+              <td>Andria Baile</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Tandile Ntiyantiya</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:51:00</td>
+              <td>Ruben Hattingh</td>
+              <td>email</td>
+              <td>Debtors Email</td>
+              <td>Sandile Sobazile; Carmin Leigh Martin</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:45:00</td>
+              <td>Johannesburg, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Njongozethu Sithole</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:43:00</td>
+              <td>sales@dimensionengineering.co.za</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Mbalenhle Ndlovu; Kim Ladeira</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:28:00</td>
+              <td>sip:EMORM025_1@10.3.1.252</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Gareth Lane; Tumelo Seipei</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:22:00</td>
+              <td>emgazielectrical@gmail.com</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Mbali Dlamini</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:13:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Roland Meyer</td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.session.inactive</td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:10:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kishen Singh</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:10:00</td>
+              <td>Clanwilliam, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Matthew Noble</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:08:00</td>
+              <td>Kim Ladeira</td>
+              <td>email</td>
+              <td>Customer Support Email</td>
+              <td>Wayne Arendse; Kim Ladeira</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 12:03:00</td>
+              <td>+27128040120</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Kim Ladeira</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 11:57:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Customer Support Voice</td>
+              <td>Wayne Arendse</td>
+              <td style=""></td>
+              <td>System</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 11:56:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Reception Voice</td>
+              <td>Chanela Nel; Ziyaad Suliman</td>
+              <td style=""></td>
+              <td>External</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 11:56:00</td>
+              <td>Mobile Number, South Africa</td>
+              <td>voice</td>
+              <td>Debtors Voice</td>
+              <td>Nompumelelo Cele; Lucrecia Cameron; Brandon Kessell</td>
+              <td style=""></td>
+              <td>Agent</td>
+            </tr>
+            
+            <tr>
+              <td>2026-06-30 11:50:00</td>
+              <td>South Africa</td>
+              <td>voice</td>
+              <td></td>
+              <td></td>
+              <td style="color: #ef4444; font-weight:600;">error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
+              <td>System</td>
+            </tr>
+            
+      </tbody>
+    </table>
+  </div>
 
-  <h2>&#128680; Top Issues to Investigate</h2>
-  <ul><li>Queue 'Customer Support Voice' – highest error volume (696 errors)</li><li>Queue 'Debtors Voice' – highest abandon rate (3.9%)</li><li>Agent 'Gareth Lane' – most RONA events (162)</li><li>4,796 wrap-up timeouts (agents not closing interactions on time)</li></ul>
+  <div class="footer">
+    Source: Genesys Cloud Interaction Export &nbsp;|&nbsp; Generated by Analytics Pipeline
+  </div>
+</div>
 
-  <h2>🚨 Detailed Failed Interactions Log (Top 50)</h2>
-  <p>Review specific interaction details associated with operational failure codes, system disconnects, or workflow timeouts.</p>
-  <table border="1" class="dataframe failed-table">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Parsed_Timestamp</th>
-      <th>ANI</th>
-      <th>Remote</th>
-      <th>Media Type</th>
-      <th>Flow</th>
-      <th>Queue</th>
-      <th>Users</th>
-      <th>Users - Not Responding</th>
-      <th>Error Code</th>
-      <th>Disconnect Type</th>
-      <th>Failed Outcomes</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>2026-06-30 19:51:00</td>
-      <td></td>
-      <td>Sonelle Slabbert</td>
-      <td>email</td>
-      <td>EM - Email Routing - Omnichannel - V2; Branch Skill in-Queue Flow v2; No Contact Last Agent Routing Flow</td>
-      <td>Customer Support Email</td>
-      <td>Njongozethu Sithole</td>
-      <td></td>
-      <td>email.error.integration.host</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 19:39:00</td>
-      <td></td>
-      <td>Taka</td>
-      <td>message</td>
-      <td>Customer Support Whatsapp; Customer Support WhatsApp In-Queue ver 1</td>
-      <td>Customer Support Whatsapp</td>
-      <td>Dale Son; Laura Coutts</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:52:00</td>
-      <td></td>
-      <td>Ross Beukes</td>
-      <td>email</td>
-      <td>EM Exports Flow</td>
-      <td>Exports Email</td>
-      <td>Laura Coutts; Sharon Phake</td>
-      <td></td>
-      <td></td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:41:00</td>
-      <td>tel:+27834633665</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales; 7. PROD CUSTOMER SUPPORT - Customer Support Global Reception</td>
-      <td>Customer Support Voice; Reception Voice</td>
-      <td>Chanela Nel</td>
-      <td>Chanela Nel</td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:34:00</td>
-      <td>tel:+27216502809</td>
-      <td>Wynberg, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Tumelo Seipei; Lucrecia Cameron</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:22:00</td>
-      <td>sip:EMHQ014_1@192.168.49.243:8060</td>
-      <td>John Goncalves</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td>John Goncalves</td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.dialplan.notFound</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:18:00</td>
-      <td>tel:+27834489711</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Kriss Vermeulen</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:17:00</td>
-      <td>tel:+27834489711</td>
-      <td>+27834489711</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Kriss Vermeulen</td>
-      <td>Kriss Vermeulen</td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:16:00</td>
-      <td>sip:EMHQ014_1@192.168.49.243:8060</td>
-      <td>John Goncalves</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td>John Goncalves</td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.dialplan.notFound</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:14:00</td>
-      <td>tel:+27835164808</td>
-      <td>+27835164808</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mark Thaver</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:14:00</td>
-      <td>tel:+27834489711</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CORP RECEPTION - Main IVR Flow - genesys contact update 31-10-2025; 2. PROD CORP RECEPTION - Global Reception</td>
-      <td>Reception Voice</td>
-      <td>Chanela Nel; Ian Runnalls</td>
-      <td>Ian Runnalls</td>
-      <td></td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 16:05:00</td>
-      <td>tel:+27317014055</td>
-      <td>Pinetown, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mark Thaver</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:39:00</td>
-      <td>tel:+27828239288</td>
-      <td>+27828239288</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Matthew Noble</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:38:00</td>
-      <td>tel:+27112342404</td>
-      <td>+27112342404</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel</td>
-      <td>Gareth Lane</td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:27:00</td>
-      <td>sip:EMCPT025_1@192.168.23.252</td>
-      <td>sip:EMCPT025_1@192.168.23.252</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Matthew Noble; Njongozethu Sithole</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:23:00</td>
-      <td>tel:+27413657515</td>
-      <td>+27413657515</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Wayne Killian; Roland Meyer</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:17:00</td>
-      <td>sip:EMORM025_1@10.3.1.252</td>
-      <td>sip:EMORM025_1@10.3.1.252</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Gareth Lane; Kim Ladeira</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:17:00</td>
-      <td>tel:+27218322200</td>
-      <td>Stellenbosch, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:17:00</td>
-      <td>tel:+27218322200</td>
-      <td>Stellenbosch, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:17:00</td>
-      <td>tel:+27218322200</td>
-      <td>Stellenbosch, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:13:00</td>
-      <td>tel:+27217971878</td>
-      <td>Wynberg, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Njongozethu Sithole</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:09:00</td>
-      <td>tel:+27834489711</td>
-      <td>+27834489711</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Tandile Ntiyantiya; Kriss Vermeulen</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:04:00</td>
-      <td></td>
-      <td>Mema Gani</td>
-      <td>email</td>
-      <td>EM - Email Routing - Omnichannel - V2; No Contact Last Agent Routing Flow; Branch Skill in-Queue Flow v2</td>
-      <td>Customer Support Email</td>
-      <td>Gareth Lane; Bongiwe Mkupa; Abdullah Maal; Matthew Noble</td>
-      <td>Bongiwe Mkupa</td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:04:00</td>
-      <td>tel:+27834065208</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mbalenhle Ndlovu</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:02:00</td>
-      <td>tel:+27420540151</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:01:00</td>
-      <td>tel:+27420540151</td>
-      <td>+27420540151</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:01:00</td>
-      <td>tel:+27420540151</td>
-      <td>+27420540151</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:01:00</td>
-      <td>tel:+27420540151</td>
-      <td>+27420540151</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 15:01:00</td>
-      <td>tel:+27210450554</td>
-      <td>Cape Town, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 2. PROD CUSTOMER SUPPORT - Customer Support With Skills Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Njongozethu Sithole</td>
-      <td>Njongozethu Sithole</td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:59:00</td>
-      <td>sip:64c8d1319b013a1a8b06c170+electromechanica.orgspan.com@localhost</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Botshelo Maringa</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:59:00</td>
-      <td>tel:+27726021768</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Tandile Ntiyantiya</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:59:00</td>
-      <td>tel:+27770977051</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:59:00</td>
-      <td>tel:+27770977051</td>
-      <td>South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough</td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:57:00</td>
-      <td>tel:+27227133333</td>
-      <td>Vredenburg, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Matthew Noble</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:57:00</td>
-      <td>tel:+27119229200</td>
-      <td>Kempton Park, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CORP RECEPTION - Main IVR Flow - genesys contact update 31-10-2025; 2. PROD CORP RECEPTION - Global Reception</td>
-      <td>Reception Voice</td>
-      <td>Chanela Nel; Lucrecia Cameron</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:57:00</td>
-      <td>sip:64c8d1319b013a1a8b06c170+electromechanica.orgspan.com@localhost</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Botshelo Maringa</td>
-      <td></td>
-      <td>error.ininedgecontrol.session.inactive</td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:49:00</td>
-      <td></td>
-      <td>'Confirm your request for' via Info EM</td>
-      <td>email</td>
-      <td>Spam Flow</td>
-      <td>Spam Queue</td>
-      <td>Lucrecia Cameron</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:49:00</td>
-      <td>tel:+27845876543</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mark Thaver</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:46:00</td>
-      <td></td>
-      <td>Leighcia de Lange - Hlela Projects</td>
-      <td>email</td>
-      <td>EM - Email Routing - Omnichannel - V2</td>
-      <td>Customer Support Email</td>
-      <td>Dale Son; Cecilia Pila; Lynn Kanengoni</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:43:00</td>
-      <td>tel:+27677009117</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mbali Dlamini</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:42:00</td>
-      <td></td>
-      <td>'Creditors (TechniCool)' via sales</td>
-      <td>email</td>
-      <td>EM - Email Routing - Omnichannel - V2</td>
-      <td>Customer Support Email</td>
-      <td>Bongiwe Mkupa; Nhluvuko Khosa</td>
-      <td></td>
-      <td></td>
-      <td>System</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:36:00</td>
-      <td>tel:+27824649117</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Mark Thaver</td>
-      <td></td>
-      <td></td>
-      <td>External</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:35:00</td>
-      <td>tel:+27824694541</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td>1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales</td>
-      <td>Customer Support Voice</td>
-      <td>Sibusiso Sibambo</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:34:00</td>
-      <td>sip:64c8d1319b013a1a8b06c170+electromechanica.orgspan.com@localhost</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Botshelo Maringa</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>2026-06-30 14:33:00</td>
-      <td>sip:64c8d1319b013a1a8b06c170+electromechanica.orgspan.com@localhost</td>
-      <td>Mobile Number, South Africa</td>
-      <td>voice</td>
-      <td></td>
-      <td>Customer Support Voice</td>
-      <td>Botshelo Maringa</td>
-      <td></td>
-      <td></td>
-      <td>Agent</td>
-      <td></td>
-    </tr>
-  </tbody>
-</table>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
-  <p class="footer">Source: Genesys Cloud interaction export – June 2026 &nbsp;|&nbsp; Generated by Antigravity analysis pipeline</p>
-<h2>Detailed Runtime Analysis</h2><p>Exact console output from this report run.</p><pre class="terminal-output">
-======================================================================
-  🔍 GENESYS PLATFORM JUNE INTERACTIONS COMPREHENSIVE ANALYSIS
-======================================================================
+<script>
+  $(document).ready(function() {
+    $('#interactionsTable').DataTable({
+      pageLength: 10,
+      order: [[ 0, "desc" ]],
+      language: { search: "Filter Interactions:" },
+      responsive: true
+    });
+  });
+</script>
 
-----------------------------------------------------------------------
-  1. DATA INTEGRITY &amp; OVERVIEW
-----------------------------------------------------------------------
-Total Exported CSV Records   : 34,441
-Dataset Date Range           : 2026-05-31 03:43:00 to 2026-06-30 23:38:00
-June 2026 Interaction Count  : 34,415 (99.92% of export dataset)
-   └─ (Note: 26 records started on May 31st at end of prior month)
-Full Export Completed Flag   : 34,441 (100.00%)
-
-----------------------------------------------------------------------
-  2. CHANNEL &amp; DIRECTION BREAKDOWN
-----------------------------------------------------------------------
-
-📱 Media Type Distribution:
-   - voice          : 22,519 ( 65.38%)
-   - email          : 11,677 ( 33.90%)
-   - message        :    233 (  0.68%)
-   - callback       :     10 (  0.03%)
-   - video          :      2 (  0.01%)
-
-🔄 Direction Distribution:
-   - Inbound        : 21,939 ( 63.70%)
-   - Outbound       :  7,067 ( 20.52%)
-   - Inbound/Outbound:  5,435 ( 15.78%)
-
-----------------------------------------------------------------------
-  3. ERROR &amp; OPERATIONAL FAILURE ROOT CAUSE
-----------------------------------------------------------------------
-Total Error Count Sum (CSV)              : 1,530
-Unique Interactions Impacted             : 6,804 (19.76%)
-   ⚠️  Note: sub-categories below overlap — one interaction can satisfy multiple flags.
-   - System Error Disconnects       : 4
-   - Flow Disconnects (mid-flow)    : 40
-   - All Flow Disconnects (incl. IVR self-service): 956
-   - Customer Disconnects           : 916
-   - Customer Short Disconnects     : 720
-   - Outcome Failures (Count)       : 0
-   - Wrap-up Timeouts (ININ-TIMEOUT): 4,796 (21.03% of interactions with wrapup)
-   - Agent RONA (Ring-No-Answer)    : 1,219 (3.54%)
-
-📴 Disconnect Type Breakdown:
-   - Agent               : 16,663 ( 48.38%)
-   - System              :  9,183 ( 26.66%)
-   - External            :  8,580 ( 24.91%)
-   - Conversation Inactivity:      7 (  0.02%)
-
-🚨 Top System Error Codes:
-   - Error Code &#x27;error.ininedgecontrol.session.inactive&#x27;: 647 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough&#x27;: 184 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.dialplan.notFound&#x27;: 144 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.station.notFound&#x27;: 116 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.noProceeding&#x27;: 43 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.timeout&#x27;: 39 occurrences
-   - Error Code &#x27;error.ininedgecontrol.ccxml&#x27;: 19 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.protocol.timeout&#x27;: 18 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.webrtc.endpoint.disconnect.iceIdleDetection&#x27;: 17 occurrences
-   - Error Code &#x27;error.ininedgecontrol.connection.insufficientPriviledges&#x27;: 13 occurrences
-
-----------------------------------------------------------------------
-  3B. DETAILED FAILED INTERACTIONS LOG
-----------------------------------------------------------------------
-
-🚨 Top 15 Most Recent Failed Interactions:
-   Parsed_Timestamp                               ANI                        Remote Media Type                                                                                                                                                                                                                Flow                                   Queue                                                                         Users Users - Not Responding                                         Error Code Disconnect Type Failed Outcomes
-2026-06-30 19:51:00                                                Sonelle Slabbert      email                                                                                                            EM - Email Routing - Omnichannel - V2; Branch Skill in-Queue Flow v2; No Contact Last Agent Routing Flow                  Customer Support Email                                                           Njongozethu Sithole                                              email.error.integration.host          System                
-2026-06-30 19:39:00                                                            Taka    message                                                                                                                                                 Customer Support Whatsapp; Customer Support WhatsApp In-Queue ver 1               Customer Support Whatsapp                                                        Dale Son; Laura Coutts                                                                                     Agent                
-2026-06-30 16:52:00                                                     Ross Beukes      email                                                                                                                                                                                                     EM Exports Flow                           Exports Email                                                    Laura Coutts; Sharon Phake                                                                                    System                
-2026-06-30 16:41:00                  tel:+27834633665   Mobile Number, South Africa      voice        1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales; 7. PROD CUSTOMER SUPPORT - Customer Support Global Reception Customer Support Voice; Reception Voice                                                                   Chanela Nel            Chanela Nel                                                           External                
-2026-06-30 16:34:00                  tel:+27216502809         Wynberg, South Africa      voice                                                                      1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales                  Customer Support Voice                                               Tumelo Seipei; Lucrecia Cameron                                    error.ininedgecontrol.session.inactive        External                
-2026-06-30 16:22:00 sip:EMHQ014_1@192.168.49.243:8060                John Goncalves      voice                                                                                                                                                                                                                                                                                                                            John Goncalves                        error.ininedgecontrol.connection.dialplan.notFound          System                
-2026-06-30 16:18:00                  tel:+27834489711   Mobile Number, South Africa      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                               Kriss Vermeulen                                    error.ininedgecontrol.session.inactive        External                
-2026-06-30 16:17:00                  tel:+27834489711                  +27834489711      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                               Kriss Vermeulen        Kriss Vermeulen                                                           External                
-2026-06-30 16:16:00 sip:EMHQ014_1@192.168.49.243:8060                John Goncalves      voice                                                                                                                                                                                                                                                                                                                            John Goncalves                        error.ininedgecontrol.connection.dialplan.notFound          System                
-2026-06-30 16:14:00                  tel:+27835164808                  +27835164808      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                   Mark Thaver                                                                                  External                
-2026-06-30 16:14:00                  tel:+27834489711   Mobile Number, South Africa      voice                                                                                               1. PROD CORP RECEPTION - Main IVR Flow - genesys contact update 31-10-2025; 2. PROD CORP RECEPTION - Global Reception                         Reception Voice                                                     Chanela Nel; Ian Runnalls           Ian Runnalls                                                             System                
-2026-06-30 16:05:00                  tel:+27317014055        Pinetown, South Africa      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                   Mark Thaver                                                                                     Agent                
-2026-06-30 15:39:00                  tel:+27828239288                  +27828239288      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                 Matthew Noble                                                                                  External                
-2026-06-30 15:38:00                  tel:+27112342404                  +27112342404      voice 1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales                  Customer Support Voice Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel            Gareth Lane                                                              Agent                
-2026-06-30 15:27:00     sip:EMCPT025_1@192.168.23.252 sip:EMCPT025_1@192.168.23.252      voice                                                                                                                                                                                                                                      Customer Support Voice                                            Matthew Noble; Njongozethu Sithole                                                                                     Agent                
-
-... and 6789 more. (Exported to detailed reports)
-
-----------------------------------------------------------------------
-  4. ABANDONMENT ANALYSIS
-----------------------------------------------------------------------
-Total Abandoned Interactions : 418
-  Abandon Rate (vs all)      : 1.21%  (out of all 34,441 interactions)
-  Abandon Rate (queue-based) : 2.04%  (out of 20,521 queue-entered interactions)
-Abandoned in Queue           : 418 (2.04% of queue-entered)
-Average Time to Abandon      : 00:00:28 (27.9s)
-Median Time to Abandon (p50) : 00:00:12 (12.2s)
-Max Time to Abandon          : 00:08:22 (501.5s)
-
-📊 Abandonment by Media Type:
-   - callback       :     0 /    10 (  0.00%)
-   - email          :     0 / 11,677 (  0.00%)
-   - message        :     0 /   233 (  0.00%)
-   - video          :     0 /     2 (  0.00%)
-   - voice          :   418 / 22,519 (  1.86%)
-
-----------------------------------------------------------------------
-  5. DURATION &amp; HANDLING TIME SLA METRICS
-----------------------------------------------------------------------
-(Note: All metrics computed across overall dataset and active non-zero interactions)
-
-⏱️ Handle Time (AHT)     : Active Mean=01:29:19 | Overall Mean=01:23:21 | p50=00:03:38 | p90=01:52:36 | Max=308:35:22
-⏱️ Queue Wait Time (ASA) : Active Mean=00:50:38 | Overall Mean=00:30:10 | p50=00:00:10 | p90=00:50:26 | Max=261:54:58
-⏱️ IVR Duration          : Active Mean=00:00:15 | Overall Mean=00:00:05 | p50=00:00:16 | p90=00:00:16 | Max=00:00:35
-⏱️ Hold Time             : Active Mean=03:03:52 | Overall Mean=00:55:38 | p50=00:25:02 | p90=04:48:30 | Max=208:41:25
-⏱️ Interaction Duration  : Active Mean=06:12:24 | Overall Mean=06:12:16 | p50=00:03:32 | p90=05:27:21 | Max=1154:00:18
-
-📊 Average Handle Time (AHT) by Media Type:
-   - callback       : 00:19:39
-   - email          : 04:05:54
-   - message        : 04:57:27
-   - voice          : 00:03:35
-
-----------------------------------------------------------------------
-  6. QUEUE PERFORMANCE (PER-ENTITY PARTICIPATION)
-----------------------------------------------------------------------
-(Note: Volume reflects queue participation count; calls traversing multiple queues are counted once per queue)
-
-Queue Name                          | Volume   | Abandons | Abnd %  | Errors  | Avg Handle | Avg Wait  
-----------------------------------------------------------------------------------------------------
-Customer Support Voice              |   10,977 |      389 |   3.54% |     696 | 00:03:54   | 00:01:08  
-Customer Support Email              |    7,449 |        0 |   0.00% |      56 | 04:53:40   | 00:55:36  
-Info Email                          |    1,807 |        0 |   0.00% |       3 | 03:42:00   | 04:59:47  
-Exports Email                       |    1,308 |        0 |   0.00% |       6 | 04:26:03   | 04:27:09  
-Debtors Email                       |    1,143 |        0 |   0.00% |       1 | 01:33:58   | 00:29:59  
-Reception Voice                     |      545 |       20 |   3.67% |      22 | 00:03:54   | 00:05:36  
-Debtors Voice                       |      311 |       12 |   3.86% |      16 | 00:05:24   | 00:00:15  
-Exports WhatsApp Chat               |      124 |        0 |   0.00% |       6 | 05:40:16   | 02:13:27  
-Technical Email                     |      120 |        0 |   0.00% |       0 | 08:58:41   | 00:22:14  
-Spam Queue                          |      112 |        0 |   0.00% |       0 | 00:15:06   | 04:06:52  
-Customer Support Whatsapp           |       93 |        0 |   0.00% |      13 | 04:41:11   | 02:33:01  
-Technical Voice                     |       88 |        0 |   0.00% |       2 | 00:07:05   | 00:03:04  
-Debtors Whatsapp Chat               |       16 |        0 |   0.00% |       1 | 01:34:09   | 00:03:05  
-Dialler Accounts                    |        2 |        0 |   0.00% |       0 | 00:36:06   | 00:10:30  
-Dev_Customer Support                |        1 |        0 |   0.00% |       0 | 23:09:37   | 144:24:29 
-
-----------------------------------------------------------------------
-  7. USER / AGENT PERFORMANCE (PER-ENTITY PARTICIPATION)
-----------------------------------------------------------------------
-(Note: Volume reflects agent handling participation; calls involving multiple agents credit each handling agent)
-
-Agent Name                     | Volume   | Errors  | Timeouts | RONA   | Transfers | Avg Handle
------------------------------------------------------------------------------------------------
-Bongiwe Mkupa                  |    1,521 |      83 |      319 |    128 |       278 | 02:24:24  
-Tharusha Sewbachane            |    1,426 |      17 |      103 |     12 |       436 | 02:00:29  
-Zakes Mabonda                  |    1,391 |      23 |      172 |    107 |       137 | 03:08:43  
-Kishen Singh                   |    1,370 |      21 |      373 |    122 |       135 | 01:50:48  
-Kim Ladeira                    |    1,321 |      24 |      447 |    130 |       301 | 01:44:43  
-Njongozethu Sithole            |    1,300 |      77 |      159 |    102 |       253 | 02:35:45  
-Sizwe Nkosi                    |    1,293 |       9 |      124 |     78 |       214 | 01:23:25  
-Laura Coutts                   |    1,279 |      12 |      213 |     29 |       673 | 04:35:36  
-Debbie Venter                  |    1,236 |      39 |      215 |     75 |       388 | 02:33:13  
-Lynn Kanengoni                 |    1,212 |      31 |      197 |     56 |       235 | 03:48:41  
-Tumelo Seipei                  |    1,143 |     120 |      123 |     81 |       289 | 02:59:11  
-Gareth Lane                    |    1,080 |      18 |      515 |    162 |       271 | 03:35:46  
-Sharon Phake                   |    1,044 |       6 |      206 |     29 |       652 | 04:23:41  
-Katlego Pitjeng                |    1,039 |      59 |       86 |     58 |       186 | 02:46:21  
-Stefan Basson                  |      949 |      18 |      120 |     89 |       236 | 03:04:01  
-
-----------------------------------------------------------------------
-  8. ARCHITECT FLOW PATHS &amp; EXITS (PER-ENTITY PARTICIPATION)
-----------------------------------------------------------------------
-Flow Name                                     | Volume   | Flow Disconnects | Errors 
--------------------------------------------------------------------------------------
-1. PROD CUSTOMER SUPPORT - Main IVR Flow -... |   10,153 |                0 |     586
-4. PROD CUSTOMER SUPPORT - Customer Suppor... |    6,451 |                0 |     360
-EM - Email Routing - Omnichannel - V2         |    6,352 |                0 |      16
-2. PROD CUSTOMER SUPPORT - Customer Suppor... |    3,102 |                0 |     234
-5. PROD CUSTOMER SUPPORT - Customer Suppor... |    2,383 |                0 |     241
-EM Info Flow                                  |    1,807 |                0 |       3
-Branch Skill in-Queue Flow v2                 |    1,610 |                0 |       7
-EM Accounts Email Flow                        |    1,065 |                0 |       1
-Support Contact Routing Flow                  |      971 |                0 |       3
-EM Exports Flow                               |      895 |                0 |       3
-1. PROD CORP RECEPTION - Main IVR Flow - g... |      508 |                0 |      18
-No Contact Last Agent Routing Flow            |      496 |                0 |       2
-2. PROD CORP RECEPTION - Global Reception     |      410 |                0 |      17
-1. PROD ACCOUNTS - Main IVR Flow - genesys... |      277 |                0 |      10
-3. PROD ACCOUNTS - AR Clerk Reception         |      215 |                0 |      12
-
-🚪 Top Flow Exit Reasons:
-   - Exit Reason &#x27;1.0&#x27;: 18,341 occurrences
-   - Exit Reason &#x27;2.0&#x27;: 1,474 occurrences
-   - Exit Reason &#x27;3.0&#x27;: 389 occurrences
-   - Exit Reason &#x27;4.0&#x27;: 169 occurrences
-   - Exit Reason &#x27;5.0&#x27;: 71 occurrences
-   - Exit Reason &#x27;6.0&#x27;: 28 occurrences
-   - Exit Reason &#x27;8.0&#x27;: 16 occurrences
-   - Exit Reason &#x27;7.0&#x27;: 15 occurrences
-   - Exit Reason &#x27;9.0&#x27;: 4 occurrences
-   - Exit Reason &#x27;12.0&#x27;: 3 occurrences
-
-🚪 Top Flow-Out Types:
-   - Flow-Out Type &#x27;acd&#x27;: 2,826 occurrences
-   - Flow-Out Type &#x27;ivr&#x27;: 11 occurrences
-   - Flow-Out Type &#x27;customer&#x27;: 4 occurrences
-   - Flow-Out Type &#x27;ivr; acd&#x27;: 2 occurrences
-   - Flow-Out Type &#x27;customer; acd&#x27;: 1 occurrences
-   - Flow-Out Type &#x27;acd; ivr&#x27;: 1 occurrences
-
-----------------------------------------------------------------------
-  9. WRAP-UP CODES ANALYSIS (PER-ASSIGNMENT FREQUENCY)
-----------------------------------------------------------------------
-Top 15 Assigned Wrap-up Codes:
-   - 09. Information Enquiry                      :  5,678 ( 16.49%)
-   - ININ-WRAP-UP-TIMEOUT                         :  4,796 ( 13.93%)
-   - 02.Resolved - Quote / price query            :  4,451 ( 12.92%)
-   - 03.Resolved - Sales order                    :  2,945 (  8.55%)
-   - 14. Unresolved / Escalation / Transferred    :  2,299 (  6.68%)
-   - 10. Follow up on back order / Order ready / Delivery:  1,663 (  4.83%)
-   - 15. SPAM                                     :  1,602 (  4.65%)
-   - 01.Resolved - Stock availability             :  1,558 (  4.52%)
-   - 13. Call dropped / return call required      :    433 (  1.26%)
-   - 04.Resolved - Documentation                  :    385 (  1.12%)
-   - Payments                                     :    312 (  0.91%)
-   - Document Request                             :    260 (  0.75%)
-   - 18. Export referral                          :    237 (  0.69%)
-   - 05.Resolved - Technical assistance           :    232 (  0.67%)
-   - Account Maintenance                          :    211 (  0.61%)
-
-----------------------------------------------------------------------
-  10. SECURITY, JOURNEY &amp; AGENT EXCEPTIONS
-----------------------------------------------------------------------
-🔒 Authenticated Status Distribution:
-
-🗺️ Has Customer Journey Data:
-   - NO             : 34,441 (100.00%)
-
-🎙️ Supervisor Barged-In Count    : 0
-🔀 Total Transfers Executed      : 3,672
-🔀 Interactions Transferred (%)   : 3,110 (9.03%)
-
-🧭 Top IVR Segment Paths:
-   - Segment &#x27;1.0&#x27;: 11,109 interactions
-   - Segment &#x27;2.0&#x27;: 14 interactions
-
-----------------------------------------------------------------------
-  11. DAILY TREND ANALYSIS
-----------------------------------------------------------------------
-Date         | Interactions | Errors   | Abandons  | Abnd %  | AHT       
-----------------------------------------------------------------------
-2026-05-31   |           26 |        0 |         0 |   0.00% | 01:07:37  
-2026-06-01   |        1,572 |       72 |        14 |   0.89% | 01:25:23  
-2026-06-02   |        1,732 |       72 |        21 |   1.21% | 01:32:41  
-2026-06-03   |        1,693 |       53 |        17 |   1.00% | 01:21:53  
-2026-06-04   |        1,801 |       69 |        14 |   0.78% | 01:14:44  
-2026-06-05   |        1,487 |       46 |        12 |   0.81% | 01:20:14  
-2026-06-06   |           48 |        1 |         0 |   0.00% | 00:29:28  
-2026-06-07   |           36 |        0 |         0 |   0.00% | 00:56:31  
-2026-06-08   |        1,720 |       80 |        11 |   0.64% | 01:07:13  
-2026-06-09   |        1,756 |       65 |        24 |   1.37% | 01:22:29  
-2026-06-10   |        1,877 |      213 |        22 |   1.17% | 01:04:33  
-2026-06-11   |        1,840 |       48 |        30 |   1.63% | 01:03:21  
-2026-06-12   |        1,317 |       54 |         4 |   0.30% | 02:20:33  
-2026-06-13   |           38 |        0 |         0 |   0.00% | 00:36:14  
-2026-06-14   |           38 |        0 |         0 |   0.00% | 03:21:40  
-2026-06-15   |        1,212 |       23 |        12 |   0.99% | 01:40:04  
-2026-06-16   |          145 |        2 |         0 |   0.00% | 02:30:39  
-2026-06-17   |        1,870 |       73 |        48 |   2.57% | 01:10:18  
-2026-06-18   |        1,808 |       56 |        23 |   1.27% | 01:03:42  
-2026-06-19   |        1,605 |       95 |        44 |   2.74% | 01:57:21  
-2026-06-20   |           45 |        3 |         0 |   0.00% | 01:47:08  
-2026-06-21   |           21 |        0 |         0 |   0.00% | 01:25:18  
-2026-06-22   |        1,739 |       82 |        16 |   0.92% | 01:27:47  
-2026-06-23   |        1,667 |       76 |        21 |   1.26% | 01:42:02  
-2026-06-24   |        1,688 |       60 |        17 |   1.01% | 01:09:32  
-2026-06-25   |        1,499 |       64 |        28 |   1.87% | 01:16:28  
-2026-06-26   |        1,345 |       66 |        19 |   1.41% | 02:01:41  
-2026-06-27   |           75 |       11 |         0 |   0.00% | 00:12:04  
-2026-06-28   |           31 |        0 |         0 |   0.00% | 01:04:55  
-2026-06-29   |        1,460 |       87 |        13 |   0.89% | 01:07:42  
-2026-06-30   |        1,250 |       59 |         8 |   0.64% | 01:04:57  
-
-----------------------------------------------------------------------
-  12. HOURLY DISTRIBUTION &amp; PEAKS
-----------------------------------------------------------------------
-Peak Traffic Hour          : 10:00 - 10:59 (4,306 interactions)
-Peak Error Hour            : 10:00 - 10:59 (353 errors)
-
-======================================================================
-  13. EXECUTIVE AUTOMATED INSIGHTS &amp; RECOMMENDATIONS
-======================================================================
-📌 TOP ACTIONABLE INSIGHTS:
-
- 1. Top Queues by Error Volume   : Customer Support Voice, Customer Support Email, Reception Voice
- 2. Top Queues by Abandon Rate % : Debtors Voice (3.9%), Reception Voice (3.7%), Customer Support Voice (3.5%)
- 3. Top Agents with Wrap-up Timeouts : Gareth Lane, Kim Ladeira, Kishen Singh
- 4. Top Agents with Ring-No-Answer   : Gareth Lane, Kim Ladeira, Bongiwe Mkupa
- 5. Wrap-Up Timeout Alert        : 4,796 interactions timed out on wrap-up, defaulting to ININ-WRAP-UP-TIMEOUT.
- 6. Agent RONA Alert             : 1,219 interactions had agent no-answers, routing back to queue.
-
-======================================================================
-  ✅ ANALYSIS COMPLETED SUCCESSFULLY
-======================================================================
-
-╔════════════════════════════════════════════════════════════╗
-║      GENESYS PLATFORM – JUNE 2026 INTERACTION REPORT       ║
-╚════════════════════════════════════════════════════════════╝
-
-OVERVIEW
-  Total Interactions   :     34,441
-  Date Range           : 31 May 2026 to 30 Jun 2026
-
-ERRORS &amp; FAILURES
-  Impacted Interactions:      6,804  (19.76% of total)
-  System Error Disconn.:          4
-  Flow Disconnects     :         40
-  Top Error Code       : error.ininedgecontrol.session.inactive (647 occurrences)
-
-ABANDONMENT
-  Abandon Rate (queue) :      2.04%
-  Abandoned in Queue   :        418
-  Avg Time to Abandon  : 00:00:28
-
-PERFORMANCE
-  Avg Handle Time (AHT): 01:29:19
-    - callback: 00:19:39
-    - email: 04:05:54
-    - message: 04:57:27
-    - voice: 00:03:35
-  Avg Queue Wait (ASA) : 00:50:38
-  Peak Traffic Hour    : 10:00 – 10:59
-
-TOP ISSUES TO INVESTIGATE
-  1. Queue &#x27;Customer Support Voice&#x27; – highest error volume (696 errors)
-  2. Queue &#x27;Debtors Voice&#x27; – highest abandon rate (3.9%)
-  3. Agent &#x27;Gareth Lane&#x27; – most RONA events (162)
-  4. 4,796 wrap-up timeouts (agents not closing interactions on time)
-
-📄 Executive HTML report saved → C:\Users\dashayin\Desktop\Work\Genesys June Interactions\reports\executive_report_june2026.html
-
-</pre></body>
+<div class='section-title' style='margin-top:4rem;'>Comprehensive System Report (Click to Expand)</div><div class='accordion-container' style='display: flex; flex-direction: column; gap: 1rem; margin-bottom: 3rem;'><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🔍 GENESYS PLATFORM JUNE INTERACTIONS COMPREHENSIVE ANALYSIS</p>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>1. DATA INTEGRITY &amp; OVERVIEW</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Total Exported CSV Records   : 34,441</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Dataset Date Range           : 2026-05-31 03:43:00 to 2026-06-30 23:38:00</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>June 2026 Interaction Count  : 34,415 (99.92% of export dataset)</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>└─ (Note: 26 records started on May 31st at end of prior month)</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Full Export Completed Flag   : 34,441 (100.00%)</p></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>2. CHANNEL &amp; DIRECTION BREAKDOWN</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📱 Media Type Distribution:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- voice          : 22,519 ( 65.38%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- email          : 11,677 ( 33.90%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- message        :    233 (  0.68%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- callback       :     10 (  0.03%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- video          :      2 (  0.01%)</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🔄 Direction Distribution:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Inbound        : 21,939 ( 63.70%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Outbound       :  7,067 ( 20.52%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Inbound/Outbound:  5,435 ( 15.78%)</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>3. ERROR &amp; OPERATIONAL FAILURE ROOT CAUSE</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Total Error Count Sum (CSV)              : 1,530</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Unique Interactions Impacted             : 6,804 (19.76%)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>⚠️  Note: sub-categories below overlap — one interaction can satisfy multiple flags.</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- System Error Disconnects       : 4</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow Disconnects (mid-flow)    : 40</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- All Flow Disconnects (incl. IVR self-service): 956</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Customer Disconnects           : 916</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Customer Short Disconnects     : 720</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Outcome Failures (Count)       : 0</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Wrap-up Timeouts (ININ-TIMEOUT): 4,796 (21.03% of interactions with wrapup)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Agent RONA (Ring-No-Answer)    : 1,219 (3.54%)</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📴 Disconnect Type Breakdown:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Agent               : 16,663 ( 48.38%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- System              :  9,183 ( 26.66%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- External            :  8,580 ( 24.91%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Conversation Inactivity:      7 (  0.02%)</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🚨 Top System Error Codes:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.session.inactive&#x27;: 647 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.noAvailableLines.noPBXPassthrough&#x27;: 184 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.dialplan.notFound&#x27;: 144 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.station.notFound&#x27;: 116 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.noProceeding&#x27;: 43 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.timeout&#x27;: 39 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.ccxml&#x27;: 19 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.protocol.timeout&#x27;: 18 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.webrtc.endpoint.disconnect.iceIdleDetection&#x27;: 17 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Error Code &#x27;error.ininedgecontrol.connection.insufficientPriviledges&#x27;: 13 occurrences</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>3B. DETAILED FAILED INTERACTIONS LOG</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🚨 Top 15 Most Recent Failed Interactions:</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Parsed_Timestamp                               ANI                        Remote Media Type                                                                                                                                                                                                                Flow                                   Queue                                                                         Users Users - Not Responding                                         Error Code Disconnect Type Failed Outcomes</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 19:51:00                                                Sonelle Slabbert      email                                                                                                            EM - Email Routing - Omnichannel - V2; Branch Skill in-Queue Flow v2; No Contact Last Agent Routing Flow                  Customer Support Email                                                           Njongozethu Sithole                                              email.error.integration.host          System</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 19:39:00                                                            Taka    message                                                                                                                                                 Customer Support Whatsapp; Customer Support WhatsApp In-Queue ver 1               Customer Support Whatsapp                                                        Dale Son; Laura Coutts                                                                                     Agent</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:52:00                                                     Ross Beukes      email                                                                                                                                                                                                     EM Exports Flow                           Exports Email                                                    Laura Coutts; Sharon Phake                                                                                    System</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:41:00                  tel:+27834633665   Mobile Number, South Africa      voice        1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales; 7. PROD CUSTOMER SUPPORT - Customer Support Global Reception Customer Support Voice; Reception Voice                                                                   Chanela Nel            Chanela Nel                                                           External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:34:00                  tel:+27216502809         Wynberg, South Africa      voice                                                                      1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales                  Customer Support Voice                                               Tumelo Seipei; Lucrecia Cameron                                    error.ininedgecontrol.session.inactive        External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:22:00 sip:EMHQ014_1@192.168.49.243:8060                John Goncalves      voice                                                                                                                                                                                                                                                                                                                            John Goncalves                        error.ininedgecontrol.connection.dialplan.notFound          System</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:18:00                  tel:+27834489711   Mobile Number, South Africa      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                               Kriss Vermeulen                                    error.ininedgecontrol.session.inactive        External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:17:00                  tel:+27834489711                  +27834489711      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                               Kriss Vermeulen        Kriss Vermeulen                                                           External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:16:00 sip:EMHQ014_1@192.168.49.243:8060                John Goncalves      voice                                                                                                                                                                                                                                                                                                                            John Goncalves                        error.ininedgecontrol.connection.dialplan.notFound          System</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:14:00                  tel:+27835164808                  +27835164808      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                   Mark Thaver                                                                                  External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:14:00                  tel:+27834489711   Mobile Number, South Africa      voice                                                                                               1. PROD CORP RECEPTION - Main IVR Flow - genesys contact update 31-10-2025; 2. PROD CORP RECEPTION - Global Reception                         Reception Voice                                                     Chanela Nel; Ian Runnalls           Ian Runnalls                                                             System</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 16:05:00                  tel:+27317014055        Pinetown, South Africa      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                   Mark Thaver                                                                                     Agent</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 15:39:00                  tel:+27828239288                  +27828239288      voice                                                                   1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales                  Customer Support Voice                                                                 Matthew Noble                                                                                  External</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 15:38:00                  tel:+27112342404                  +27112342404      voice 1. PROD CUSTOMER SUPPORT - Main IVR Flow - genesys contact update 19-02-2026; 4. PROD CUSTOMER SUPPORT - Customer Support With Skill Branch Sales; 5. PROD CUSTOMER SUPPORT - Customer Support With Skill Any Sales                  Customer Support Voice Gareth Lane; Njongozethu Sithole; Lucrecia Cameron; Nicole Botha; Chanela Nel            Gareth Lane                                                              Agent</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>2026-06-30 15:27:00     sip:EMCPT025_1@192.168.23.252 sip:EMCPT025_1@192.168.23.252      voice                                                                                                                                                                                                                                      Customer Support Voice                                            Matthew Noble; Njongozethu Sithole                                                                                     Agent</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>... and 6789 more. (Exported to detailed reports)</p></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>4. ABANDONMENT ANALYSIS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Total Abandoned Interactions : 418</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Abandon Rate (vs all)      : 1.21%  (out of all 34,441 interactions)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Abandon Rate (queue-based) : 2.04%  (out of 20,521 queue-entered interactions)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Abandoned in Queue           : 418 (2.04% of queue-entered)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Average Time to Abandon      : 00:00:28 (27.9s)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Median Time to Abandon (p50) : 00:00:12 (12.2s)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Max Time to Abandon          : 00:08:22 (501.5s)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📊 Abandonment by Media Type:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- callback       :     0 /    10 (  0.00%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- email          :     0 / 11,677 (  0.00%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- message        :     0 /   233 (  0.00%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- video          :     0 /     2 (  0.00%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- voice          :   418 / 22,519 (  1.86%)</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>5. DURATION &amp; HANDLING TIME SLA METRICS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>(Note: All metrics computed across overall dataset and active non-zero interactions)</p><div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>⏱️ Handle Time (AHT)     : Active Mean=01:29:19</th><th>Overall Mean=01:23:21</th><th>p50=00:03:38</th><th>p90=01:52:36</th><th>Max=308:35:22</th></tr></thead><tbody><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>⏱️ Queue Wait Time (ASA) : Active Mean=00:50:38</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Overall Mean=00:30:10</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p50=00:00:10</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p90=00:50:26</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Max=261:54:58</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>⏱️ IVR Duration          : Active Mean=00:00:15</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Overall Mean=00:00:05</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p50=00:00:16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p90=00:00:16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Max=00:00:35</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>⏱️ Hold Time             : Active Mean=03:03:52</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Overall Mean=00:55:38</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p50=00:25:02</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p90=04:48:30</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Max=208:41:25</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>⏱️ Interaction Duration  : Active Mean=06:12:24</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Overall Mean=06:12:16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p50=00:03:32</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>p90=05:27:21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Max=1154:00:18</td></tr></tbody></table></div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📊 Average Handle Time (AHT) by Media Type:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- callback       : 00:19:39</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- email          : 04:05:54</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- message        : 04:57:27</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- voice          : 00:03:35</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>6. QUEUE PERFORMANCE (PER-ENTITY PARTICIPATION)</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>(Note: Volume reflects queue participation count; calls traversing multiple queues are counted once per queue)</p><div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>Queue Name</th><th>Volume</th><th>Abandons</th><th>Abnd %</th><th>Errors</th><th>Avg Handle</th><th>Avg Wait</th></tr></thead><tbody><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Customer Support Voice</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>10,977</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>389</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3.54%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>696</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:03:54</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:01:08</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Customer Support Email</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>7,449</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>56</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:53:40</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:55:36</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Info Email</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,807</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:42:00</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:59:47</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Exports Email</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,308</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>6</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:26:03</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:27:09</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Debtors Email</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,143</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:33:58</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:29:59</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Reception Voice</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>545</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>20</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3.67%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>22</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:03:54</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:05:36</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Debtors Voice</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>311</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3.86%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:05:24</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:00:15</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Exports WhatsApp Chat</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>124</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>6</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>05:40:16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:13:27</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Technical Email</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>120</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>08:58:41</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:22:14</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Spam Queue</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>112</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:15:06</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:06:52</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Customer Support Whatsapp</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>93</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>13</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:41:11</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:33:01</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Technical Voice</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>88</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:07:05</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:03:04</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Debtors Whatsapp Chat</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:34:09</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:03:05</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Dialler Accounts</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:36:06</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:10:30</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Dev_Customer Support</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>23:09:37</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>144:24:29</td></tr></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>7. USER / AGENT PERFORMANCE (PER-ENTITY PARTICIPATION)</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>(Note: Volume reflects agent handling participation; calls involving multiple agents credit each handling agent)</p><div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>Agent Name</th><th>Volume</th><th>Errors</th><th>Timeouts</th><th>RONA</th><th>Transfers</th><th>Avg Handle</th></tr></thead><tbody><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Bongiwe Mkupa</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,521</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>83</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>319</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>128</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>278</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:24:24</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Tharusha Sewbachane</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,426</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>17</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>103</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>436</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:00:29</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Zakes Mabonda</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,391</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>23</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>172</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>107</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>137</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:08:43</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Kishen Singh</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,370</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>373</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>122</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>135</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:50:48</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Kim Ladeira</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,321</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>24</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>447</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>130</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>301</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:44:43</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Njongozethu Sithole</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,300</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>77</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>159</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>102</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>253</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:35:45</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Sizwe Nkosi</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,293</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>9</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>124</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>78</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>214</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:23:25</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Laura Coutts</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,279</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>213</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>29</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>673</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:35:36</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Debbie Venter</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,236</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>39</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>215</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>75</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>388</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:33:13</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Lynn Kanengoni</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,212</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>31</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>197</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>56</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>235</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:48:41</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Tumelo Seipei</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,143</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>120</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>123</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>81</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>289</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:59:11</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Gareth Lane</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,080</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>18</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>515</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>162</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>271</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:35:46</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Sharon Phake</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,044</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>6</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>206</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>29</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>652</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>04:23:41</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Katlego Pitjeng</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,039</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>59</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>86</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>58</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>186</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:46:21</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Stefan Basson</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>949</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>18</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>120</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>89</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>236</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:04:01</td></tr></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>8. ARCHITECT FLOW PATHS &amp; EXITS (PER-ENTITY PARTICIPATION)</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>Flow Name</th><th>Volume</th><th>Flow Disconnects</th><th>Errors</th></tr></thead><tbody></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>1. PROD CUSTOMER SUPPORT - Main IVR Flow -... |   10,153 |                0 |     586</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>4. PROD CUSTOMER SUPPORT - Customer Suppor... |    6,451 |                0 |     360</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>EM - Email Routing - Omnichannel - V2</th><th>6,352</th><th>0</th><th>16</th></tr></thead><tbody></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>2. PROD CUSTOMER SUPPORT - Customer Suppor... |    3,102 |                0 |     234</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>5. PROD CUSTOMER SUPPORT - Customer Suppor... |    2,383 |                0 |     241</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>EM Info Flow</th><th>1,807</th><th>0</th><th>3</th></tr></thead><tbody><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Branch Skill in-Queue Flow v2</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,610</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>7</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>EM Accounts Email Flow</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,065</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>Support Contact Routing Flow</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>971</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>EM Exports Flow</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>895</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3</td></tr></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>1. PROD CORP RECEPTION - Main IVR Flow - g... |      508 |                0 |      18</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>No Contact Last Agent Routing Flow</th><th>496</th><th>0</th><th>2</th></tr></thead><tbody></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>2. PROD CORP RECEPTION - Global Reception     |      410 |                0 |      17</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>1. PROD ACCOUNTS - Main IVR Flow - genesys... |      277 |                0 |      10</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>3. PROD ACCOUNTS - AR Clerk Reception         |      215 |                0 |      12</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🚪 Top Flow Exit Reasons:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;1.0&#x27;: 18,341 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;2.0&#x27;: 1,474 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;3.0&#x27;: 389 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;4.0&#x27;: 169 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;5.0&#x27;: 71 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;6.0&#x27;: 28 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;8.0&#x27;: 16 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;7.0&#x27;: 15 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;9.0&#x27;: 4 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Exit Reason &#x27;12.0&#x27;: 3 occurrences</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🚪 Top Flow-Out Types:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;acd&#x27;: 2,826 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;ivr&#x27;: 11 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;customer&#x27;: 4 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;ivr; acd&#x27;: 2 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;customer; acd&#x27;: 1 occurrences</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Flow-Out Type &#x27;acd; ivr&#x27;: 1 occurrences</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>9. WRAP-UP CODES ANALYSIS (PER-ASSIGNMENT FREQUENCY)</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Top 15 Assigned Wrap-up Codes:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 09. Information Enquiry                      :  5,678 ( 16.49%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- ININ-WRAP-UP-TIMEOUT                         :  4,796 ( 13.93%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 02.Resolved - Quote / price query            :  4,451 ( 12.92%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 03.Resolved - Sales order                    :  2,945 (  8.55%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 14. Unresolved / Escalation / Transferred    :  2,299 (  6.68%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 10. Follow up on back order / Order ready / Delivery:  1,663 (  4.83%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 15. SPAM                                     :  1,602 (  4.65%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 01.Resolved - Stock availability             :  1,558 (  4.52%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 13. Call dropped / return call required      :    433 (  1.26%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 04.Resolved - Documentation                  :    385 (  1.12%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Payments                                     :    312 (  0.91%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Document Request                             :    260 (  0.75%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 18. Export referral                          :    237 (  0.69%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- 05.Resolved - Technical assistance           :    232 (  0.67%)</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Account Maintenance                          :    211 (  0.61%)</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>10. SECURITY, JOURNEY &amp; AGENT EXCEPTIONS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🔒 Authenticated Status Distribution:</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🗺️ Has Customer Journey Data:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- NO             : 34,441 (100.00%)</div><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🎙️ Supervisor Barged-In Count    : 0</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🔀 Total Transfers Executed      : 3,672</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🔀 Interactions Transferred (%)   : 3,110 (9.03%)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>🧭 Top IVR Segment Paths:</p><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Segment &#x27;1.0&#x27;: 11,109 interactions</div><div class='stat-row' style='padding: 0.5rem 1rem; border-top: none; border-bottom: 1px solid var(--accent); justify-content: flex-start; color: var(--text-main); font-weight: 500;'>- Segment &#x27;2.0&#x27;: 14 interactions</div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>11. DAILY TREND ANALYSIS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <div class='table-wrapper' style='margin-bottom: 1.5rem; overflow-x: auto;'><table class='dataTable display' style='width: 100%; text-align: left;'><thead><tr style='background: var(--primary); color: white;'><th>Date</th><th>Interactions</th><th>Errors</th><th>Abandons</th><th>Abnd %</th><th>AHT</th></tr></thead><tbody><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-05-31</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>26</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:07:37</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-01</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,572</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>72</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>14</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.89%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:25:23</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-02</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,732</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>72</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.21%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:32:41</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-03</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,693</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>53</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>17</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:21:53</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-04</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,801</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>69</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>14</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.78%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:14:44</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-05</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,487</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>46</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.81%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:20:14</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-06</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>48</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:29:28</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-07</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>36</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:56:31</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-08</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,720</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>80</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>11</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.64%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:07:13</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-09</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,756</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>65</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>24</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.37%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:22:29</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-10</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,877</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>213</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>22</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.17%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:04:33</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-11</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,840</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>48</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>30</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.63%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:03:21</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,317</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>54</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>4</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.30%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:20:33</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-13</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>38</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:36:14</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-14</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>38</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>03:21:40</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-15</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,212</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>23</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>12</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.99%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:40:04</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>145</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:30:39</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-17</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,870</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>73</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>48</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2.57%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:10:18</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-18</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,808</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>56</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>23</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.27%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:03:42</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-19</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,605</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>95</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>44</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2.74%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:57:21</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-20</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>45</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>3</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:47:08</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:25:18</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-22</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,739</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>82</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>16</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.92%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:27:47</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-23</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,667</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>76</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>21</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.26%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:42:02</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-24</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,688</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>60</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>17</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.01%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:09:32</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-25</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,499</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>64</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>28</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.87%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:16:28</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-26</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,345</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>66</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>19</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1.41%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>02:01:41</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-27</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>75</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>11</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>00:12:04</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-28</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>31</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.00%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:04:55</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-29</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,460</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>87</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>13</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.89%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:07:42</td></tr><tr style='background: var(--surface);'><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>2026-06-30</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>1,250</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>59</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>8</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>0.64%</td><td style='padding: 0.8rem; border-bottom: 1px solid var(--accent);'>01:04:57</td></tr></tbody></table></div></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>12. HOURLY DISTRIBUTION &amp; PEAKS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Peak Traffic Hour          : 10:00 - 10:59 (4,306 interactions)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Peak Error Hour            : 10:00 - 10:59 (353 errors)</p></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>13. EXECUTIVE AUTOMATED INSIGHTS &amp; RECOMMENDATIONS</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📌 TOP ACTIONABLE INSIGHTS:</p></div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>1. Top Queues by Error Volume   : Customer Support Voice, Customer Support Email, Reception Voice</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>2. Top Queues by Abandon Rate % : Debtors Voice (3.9%), Reception Voice (3.7%), Customer Support Voice (3.5%)</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>3. Top Agents with Wrap-up Timeouts : Gareth Lane, Kim Ladeira, Kishen Singh</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>4. Top Agents with Ring-No-Answer   : Gareth Lane, Kim Ladeira, Bongiwe Mkupa</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>5. Wrap-Up Timeout Alert        : 4,796 interactions timed out on wrap-up, defaulting to ININ-WRAP-UP-TIMEOUT.</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            </div></details>
+            <details style='background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>
+                <summary style='padding: 1.2rem 1.5rem; font-weight: 600; color: var(--primary); font-size: 1.05rem; cursor: pointer; background: #f8fafc; list-style: none; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;'>
+                    <span>6. Agent RONA Alert             : 1,219 interactions had agent no-answers, routing back to queue.</span>
+                    <span style='color: var(--secondary); font-size: 0.8em;'>▼ Expand</span>
+                </summary>
+                <div style='padding: 1.5rem; border-top: 1px solid var(--accent);'>
+            <p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>✅ ANALYSIS COMPLETED SUCCESSFULLY</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>╔══════════════════════════════════════════════════════════════════════╗</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>║           GENESYS PLATFORM – JUNE 2026 INTERACTION REPORT            ║</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>╚══════════════════════════════════════════════════════════════════════╝</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>OVERVIEW</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Total Interactions   :     34,441</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Date Range           : 31 May 2026 to 30 Jun 2026</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>ERRORS &amp; FAILURES</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Impacted Interactions:      6,804  (19.76% of total)</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>System Error Disconn.:          4</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Flow Disconnects     :         40</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>PERFORMANCE</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Avg Handle Time (AHT): 01:29:19</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>Avg Queue Wait (ASA) : 00:50:38</p><p style='font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);'>📄 Executive HTML report saved → C:\Users\dashayin\Desktop\Work\Genesys June Interactions\reports\executive_report_june2026.html</p></div></details></div>
+</body>
 </html>
